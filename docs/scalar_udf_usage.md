@@ -1,5 +1,9 @@
 ## Usage of Scalar UDF examples
 
+> *****************************************
+> ⚠️ THIS DOC IS A WORK IN PROGRESS
+> *****************************************
+
 Register the scalar UDF provided by the artifact
 
 
