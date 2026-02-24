@@ -117,7 +117,7 @@ CREATE FUNCTION `random_string`
     USING JAR 'confluent-artifact://<artifact-id>'
 ```
 
-Invoke:
+Invoke: (⚠️ **FAILS WITH: Your statement encountered an error. This may be due to invalid syntax, configuration, or a transient system issue. Please review your code and access permissions for all required topics and schemas. Once verified, please retry the statement. If the issue persists, contact Confluent support.)
 ```sql
 SELECT
     *,

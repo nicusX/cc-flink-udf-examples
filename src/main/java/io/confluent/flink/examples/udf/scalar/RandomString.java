@@ -8,6 +8,8 @@ import org.apache.flink.table.functions.ScalarFunction;
  * Function returning a random string.
  * This example also demonstrate the implementation of a non-deterministic UDF and the usage of external dependencies
  * (Apache Common Lang in this case), and how to initialize expensive resources in the open() method.
+ *
+ * FIXME invoking this function throws an error
  */
 public class RandomString extends ScalarFunction {
 

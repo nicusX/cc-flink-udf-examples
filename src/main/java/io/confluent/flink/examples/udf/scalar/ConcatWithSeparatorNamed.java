@@ -10,6 +10,8 @@ import org.apache.flink.table.functions.ScalarFunction;
  * This example demonstrates how to use named, optional parameters.
  * <p>
  * This is an alternative implementation of {@link ConcatWithSeparator}.
+ *
+ * FIXME this function gives an error when invoked with named parameters
  */
 public class ConcatWithSeparatorNamed extends ScalarFunction {
 
