@@ -121,6 +121,6 @@ Invoke:
 ```sql
 SELECT
     *,
-    random_string(10) AS random
+    random_string(10) AS my_random
 FROM  `examples`.`marketplace`.`orders`    
 ```

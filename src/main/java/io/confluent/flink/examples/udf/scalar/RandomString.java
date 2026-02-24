@@ -11,7 +11,10 @@ import org.apache.flink.table.functions.ScalarFunction;
  */
 public class RandomString extends ScalarFunction {
 
-    // FIXME document why this must be transient
+    /**
+     * IMPORTANT: the field must be `transient`.
+     * Otherwise, you get a serialization error when the statement invoking this function is initialized.
+     */
     private transient RandomStringUtils secureGenerator;
 
     /**
