@@ -8,7 +8,7 @@ import org.apache.flink.table.functions.ScalarFunction;
  * This example also demonstrates how you can have multiple, overloaded eval() methods.
  * Note that, at the time of writing, Confluent Cloud Flink does not yet support vararg parameters.
  *
- * For a similar function, using optional named parameters see {@link ConcatWithSeparatorOptional}.
+ * For a similar function, using optional named parameters see {@link ConcatWithSeparatorNamed}.
  */
 public class ConcatWithSeparator extends ScalarFunction {
 

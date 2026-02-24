@@ -4,49 +4,49 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ConcatWithSeparatorOptionalTest {
+class ConcatWithSeparatorNamedTest {
 
-    private final ConcatWithSeparatorOptional concatWithDashOptional = new ConcatWithSeparatorOptional();
+    private final ConcatWithSeparatorNamed concatWithSeparatorNamed = new ConcatWithSeparatorNamed();
 
     @Test
     void evalWithOnlyRequiredArguments() {
-        assertThat(concatWithDashOptional.eval("hello", null, null, null, "-"))
+        assertThat(concatWithSeparatorNamed.eval("hello", null, null, null, "-"))
                 .isEqualTo("hello");
     }
 
     @Test
     void evalWithTwoStrings() {
-        assertThat(concatWithDashOptional.eval("hello", "world", null, null, "-"))
+        assertThat(concatWithSeparatorNamed.eval("hello", "world", null, null, "-"))
                 .isEqualTo("hello-world");
     }
 
     @Test
     void evalWithThreeStrings() {
-        assertThat(concatWithDashOptional.eval("a", "b", "c", null, "-"))
+        assertThat(concatWithSeparatorNamed.eval("a", "b", "c", null, "-"))
                 .isEqualTo("a-b-c");
     }
 
     @Test
     void evalWithAllFourStrings() {
-        assertThat(concatWithDashOptional.eval("a", "b", "c", "d", "-"))
+        assertThat(concatWithSeparatorNamed.eval("a", "b", "c", "d", "-"))
                 .isEqualTo("a-b-c-d");
     }
 
     @Test
     void evalWithCustomSeparator() {
-        assertThat(concatWithDashOptional.eval("a", "b", "c", "d", ", "))
+        assertThat(concatWithSeparatorNamed.eval("a", "b", "c", "d", ", "))
                 .isEqualTo("a, b, c, d");
     }
 
     @Test
     void evalWithEmptySeparator() {
-        assertThat(concatWithDashOptional.eval("hello", "world", null, null, ""))
+        assertThat(concatWithSeparatorNamed.eval("hello", "world", null, null, ""))
                 .isEqualTo("helloworld");
     }
 
     @Test
     void evalSkipsNullInMiddle() {
-        assertThat(concatWithDashOptional.eval("a", null, null, "d", "-"))
+        assertThat(concatWithSeparatorNamed.eval("a", null, null, "d", "-"))
                 .isEqualTo("a-d");
     }
 }

@@ -11,14 +11,14 @@ import org.apache.flink.table.functions.ScalarFunction;
  * <p>
  * This is an alternative implementation of {@link ConcatWithSeparator}.
  */
-public class ConcatWithSeparatorOptional extends ScalarFunction {
+public class ConcatWithSeparatorNamed extends ScalarFunction {
 
     public String eval(
             @ArgumentHint(name = "s1", type = @DataTypeHint("STRING"), isOptional = false) String s1,
             @ArgumentHint(name = "s2", type = @DataTypeHint("STRING"), isOptional = true) String s2,
             @ArgumentHint(name = "s3", type = @DataTypeHint("STRING"), isOptional = true) String s3,
             @ArgumentHint(name = "s4", type = @DataTypeHint("STRING"), isOptional = true) String s4,
-            @ArgumentHint(name = "separator", type = @DataTypeHint("STRING"), isOptional = false) String separator) {
+            @ArgumentHint(name = "sep", type = @DataTypeHint("STRING"), isOptional = false) String separator) {
         String result = s1;
         if (s2 != null) {
             result = result + separator + s2;

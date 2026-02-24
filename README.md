@@ -1,6 +1,10 @@
 # Flink UDF examples
 
+
+
 Collection of examples of User Defined Functions for Confluent Cloud Flink.
+
+
 
 ## Examples
 
@@ -9,9 +13,8 @@ Collection of examples of User Defined Functions for Confluent Cloud Flink.
 * Simple scalar function, multiple overloaded `eval()`
   methods: [ConcatWithSeparator](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java)
 * Scalar function with named, optional
-  parameters: [ConcatWithSeparatorOptional](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparatorOptional.java)
-* Logging and named
-  parameters: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java)
+  parameters: [ConcatWithSeparatorNamed](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparatorNamed.java)
+* Logging: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java)
 * Non-deterministic function; initializing
   resources: [RandomString](./src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java)
 * TODO Flattening (denormalizing) JSON arrays (JSON->ROW)

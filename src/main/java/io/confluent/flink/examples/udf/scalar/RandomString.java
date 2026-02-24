@@ -11,7 +11,8 @@ import org.apache.flink.table.functions.ScalarFunction;
  */
 public class RandomString extends ScalarFunction {
 
-    private RandomStringUtils secureGenerator;
+    // FIXME document why this must be transient
+    private transient RandomStringUtils secureGenerator;
 
     /**
      * Tells the Flink framework that the result of this UDF is not deterministic,
