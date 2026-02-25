@@ -32,4 +32,19 @@ class ConcatWithSeparatorTest {
     void evalThreeWithEmptyStrings() {
         assertThat(concatWithDash.eval("", "", "", "-")).isEqualTo("--");
     }
+
+    @Test
+    void evalConcatenatesFourStringsWithSeparator() {
+        assertThat(concatWithDash.eval("a", "b", "c", "d", "-")).isEqualTo("a-b-c-d");
+    }
+
+    @Test
+    void evalWithNullInputTreatsAsEmptyString() {
+        assertThat(concatWithDash.eval(null, "world", "-")).isEqualTo("-world");
+    }
+
+    @Test
+    void evalWithNullSeparatorTreatsAsEmptyString() {
+        assertThat(concatWithDash.eval("a", "b", null)).isEqualTo("ab");
+    }
 }

@@ -4,34 +4,34 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class RandomStringSimpleTest {
+class RandomStringTest {
 
-    private final RandomStringSimple randomStringSimple = new RandomStringSimple();
+    private final RandomString randomString = new RandomString();
 
     @Test
     void evalReturnsStringOfRequestedLength() {
-        assertThat(randomStringSimple.eval(10)).hasSize(10);
+        assertThat(randomString.eval(10)).hasSize(10);
     }
 
     @Test
     void evalReturnsAlphabeticString() {
-        assertThat(randomStringSimple.eval(20)).matches("[a-zA-Z]+");
+        assertThat(randomString.eval(20)).matches("[a-zA-Z]+");
     }
 
     @Test
     void evalReturnsDifferentStringsOnSubsequentCalls() {
-        String first = randomStringSimple.eval(20);
-        String second = randomStringSimple.eval(20);
+        String first = randomString.eval(20);
+        String second = randomString.eval(20);
         assertThat(first).isNotEqualTo(second);
     }
 
     @Test
     void evalReturnsEmptyStringForZeroLength() {
-        assertThat(randomStringSimple.eval(0)).isEmpty();
+        assertThat(randomString.eval(0)).isEmpty();
     }
 
     @Test
     void isNotDeterministic() {
-        assertThat(randomStringSimple.isDeterministic()).isFalse();
+        assertThat(randomString.isDeterministic()).isFalse();
     }
 }

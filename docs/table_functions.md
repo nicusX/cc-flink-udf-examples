@@ -1,6 +1,12 @@
 ## Usage of UDTF examples
 
+> ⚠️ Make sure in your SQL Workspace you select Catalog and Database corresponding to your environment and cluster.
+> Do not select `examples` and `marketplace`.
+
 ### JsonAddressToRow
+
+User Defined Table Function (UDTF) source code: 
+[JsonAddressToRow](../src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java)
 
 This User Defined Table Function (UDTF) unnests a STRING field containing a JSON representation of the address in this form:
 
@@ -23,6 +29,9 @@ Note that, if a valid JSON is encountered, but the `street`, `postcode`, or `cit
 as a parsing failure but `NULL` is returned for the missing fields.
 
 #### Register the User Defined Table Function (UDTF)
+
+Register the function. Replace `<artifact-id>` with the ID of the JAR artifact you uploaded.
+The artifact ID is a string starting with `cfa-` like `cfa-abc1234`.
 
 ```sql
 CREATE FUNCTION `unnest_json_address`
@@ -56,7 +65,7 @@ FROM `examples`.`marketplace`.`customers`
 
 Now we can test the UDTF.
 
-#### Use the UDTF to unnest the JSON address
+#### Test the UDTF to unnest the JSON address
 
 Let's test the UDTF setting `failOnError` = `TRUE`:
 ```sql

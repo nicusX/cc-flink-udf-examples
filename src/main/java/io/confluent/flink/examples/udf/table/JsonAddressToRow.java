@@ -1,8 +1,8 @@
 package io.confluent.flink.examples.udf.table;
 
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.table.annotation.DataTypeHint;
 import org.apache.flink.table.annotation.FunctionHint;
 import org.apache.flink.table.functions.FunctionContext;
@@ -26,6 +26,11 @@ import org.apache.logging.log4j.Logger;
  * <p>
  * The function also implements two different behaviors when an invalid JSON is encountered, depending on the second parameter
  * passed to the function invocation.
+ * <p>
+ * NOTE: Flink runtime includes a shaded version of Jackson2 at the package
+ * org.apache.flink.shaded.jackson2.com.fasterxml.jackson.
+ * We could have used it for this example. For demonstration purposes, we use the version of Jackson2 added to the
+ * project as additional dependency.
  */
 @FunctionHint(output = @DataTypeHint("ROW<street STRING, postcode STRING, city STRING>"))
 public class JsonAddressToRow extends TableFunction<Row> {

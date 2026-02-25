@@ -2,23 +2,26 @@ package io.confluent.flink.examples.udf.scalar;
 
 import org.apache.flink.table.functions.ScalarFunction;
 
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Simple scalar function concatenating strings with a separator between them.
- *
- * This example also demonstrates how you can have multiple, overloaded eval() methods.
+ * <p>
+ * This example demonstrates how you can have multiple, overloaded eval() methods.
+ * <p>
  * Note that, at the time of writing, Confluent Cloud Flink does not yet support vararg parameters.
  */
 public class ConcatWithSeparator extends ScalarFunction {
 
     public String eval(String a, String b, String separator) {
-        return a + separator + b;
+        return StringUtils.join(new String[]{a, b}, separator);
     }
 
     public String eval(String a, String b, String c, String separator) {
-        return a + separator + b + separator + c;
+        return StringUtils.join(new String[]{a, b, c}, separator);
     }
 
     public String eval(String a, String b, String c, String d, String separator) {
-        return a + separator + b + separator + c + separator + d;
+        return StringUtils.join(new String[]{a, b, c, d}, separator);
     }
 }

@@ -1,29 +1,35 @@
 ## Usage of Scalar UDF examples
 
-> *****************************************
-> ⚠️ THIS DOC IS A WORK IN PROGRESS
-> *****************************************
-
-Register the scalar UDF provided by the artifact
+> ⚠️ Make sure in your SQL Workspace you select Catalog and Database corresponding to your environment and cluster.
+> Do not select `examples` and `marketplace`.
 
 
-TODO Select your catalog and database in SQL Workspace
+### ConcatWithSeparator
 
+UDF source code:
+[ConcatWithSeparator](../src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java)
 
-### Registering and Invoking UDFs
+Simple scalar function concatenating two or more string parameters with a specified separator.
+This example shows how you can overload the `eval()` method having different versions with different parameters.
 
-#### ConcatWithSeparator
+#### Register the User Defined Function (UDF)
 
-Register:
+Register the function. Replace `<artifact-id>` with the ID of the JAR artifact you uploaded.
+The artifact ID is a string starting with `cfa-` like `cfa-abc1234`.
+
 ```sql
 CREATE FUNCTION `concat_with_separator`
     AS 'io.confluent.flink.examples.udf.scalar.ConcatWithSeparator'
   USING JAR 'confluent-artifact://<artifact-id>'
 ```
 
-TODO: verify the function is registered correctly
+Verify registration:
+```sql
+DESCRIBE FUNCTION EXTENDED `concat_with_separator`
+```
 
-Invoke:
+#### Test the UDF to concatenate multiple string fields
+
 ```sql
 SELECT 
   concat_with_separator(`name`, `brand`, ' - ') AS long_name,
@@ -33,7 +39,7 @@ FROM `examples`.`marketplace`.`products`
 ```
 
 Note: if you try to invoke the UDF with parameters not matching any of the `eval()` implementations, you get an error.
-for example, invoking `concat_with_separator(...)` with just two parameters:
+for example:
 
 ```sql
 SELECT 
@@ -53,17 +59,29 @@ concat_with_separator(STRING, STRING, STRING, STRING, STRING)
 concat_with_separator(STRING, STRING, STRING, STRING)
 ```
 
+`DESCRIBE FUNCTION <function-name>` lists all the supported signatures
 
-#### LogOutOfRange
+---
 
-Register:
+### LogOutOfRange
+
+UDF source code:
+[LogOutOfRange](../src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java)
+
+This example demonstrates logging in a UDF.
+
+The function is passthrough and simply returns the first parameter passed. However, it also logs a message at `WARN` 
+level when certain conditions are met.
+
+#### Register the function
+
 ```sql
 CREATE FUNCTION `log_out_of_range`
     AS 'io.confluent.flink.examples.udf.scalar.LogOutOfRange'
     USING JAR 'confluent-artifact://<artifact-id>'
 ```
 
-Invoke:
+#### Test the function, logging prices out of range
 ```sql
 SELECT
     order_id,
@@ -72,22 +90,33 @@ FROM  `examples`.`marketplace`.`orders`
 ```
 
 To see the logs, go to *Environments* > your environment > *Flink* > *Statements* > select your statement > *Logs*.
+You can filter log entries by Source (`Function`) and Log level (`WARN`).
 
-UDF log entries are from the Source `Function`
+---
 
-#### RandomString
+### RandomString
 
-Register:
+UDF source code:
+[RandomString](../src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java)
+
+This example shows how to implement a non-deterministic UDF, a function which return value does not only depend deterministically
+on the input parameters. If not implemented correctly, when a non-deterministic function is invoked with only constant parameters (or no parameter)
+Flink may "optimize" and run the function only once, in the pre-flight phase, and reuse the same value for all invocations.
+This is normally not what you want to achieve when you, for example, want to generate a random value.
+
+#### Register the function
+
 ```sql
 CREATE FUNCTION `random_string`
     AS 'io.confluent.flink.examples.udf.scalar.RandomString'
     USING JAR 'confluent-artifact://<artifact-id>'
 ```
 
-Invoke: (⚠️ **FAILS WITH: Your statement encountered an error. This may be due to invalid syntax, configuration, or a transient system issue. Please review your code and access permissions for all required topics and schemas. Once verified, please retry the statement. If the issue persists, contact Confluent support.)
+#### Test the function
+
 ```sql
 SELECT
-    *,
-    random_string(10) AS my_random
+    random_string(10) AS my_random,
+    order_id
 FROM  `examples`.`marketplace`.`orders`    
 ```

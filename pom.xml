@@ -71,7 +71,7 @@
 
     <build>
         <plugins>
-            <!-- Maven Shade Plugin creates an uber-jar including all (non-provided) dependencies -->
+            <!-- Maven Shade Plugin creates an uber-jar including all (non-provided, non-test) dependencies -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
