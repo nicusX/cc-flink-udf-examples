@@ -53,39 +53,6 @@ concat_with_separator(STRING, STRING, STRING, STRING, STRING)
 concat_with_separator(STRING, STRING, STRING, STRING)
 ```
 
-#### ConcatWithSeparatorNamed
-
-FIXME: Calling by name does not work as documented
-
-Register:
-```sql
-CREATE FUNCTION `concat_with_separator_named`
-    AS 'io.confluent.flink.examples.udf.scalar.ConcatWithSeparatorNamed'
-  USING JAR 'confluent-artifact://<artifact-id>'
-```
-
-
-Verify the function is registered correctly:
-```sql
-DESCRIBE FUNCTION `concat_with_separator_named`
-
-```
-
-Invoke with named parameters (⚠️ **FAILS WITH: Unsupported function signature. Function must not be overloaded or use varargs.**):
-```sql
-SELECT
-    concat_with_separator_named( s1 => `name`, sep => ', ') AS simple_name,
-    concat_with_separator_named( s1 => `name`, s2 => `brand`, sep => ' - ') AS long_name,
-    concat_with_separator_named( s1 => `name`, s2 => `brand`, s3 => `vendor`, sep => ' : ') AS extended_name,
-    concat_with_separator_named( s1 => `name`, s2 => `brand`, s3 => `vendor`, s4 => `department`, sep => ' : ') AS extra_long_name
-FROM `examples`.`marketplace`.`products`
-```
-Invoke with positional parameters:
-```sql
-SELECT
-    concat_with_separator_named( `name`, `brand`, `vendor`, `department`, ' : ') AS extra_long_name
-FROM `examples`.`marketplace`.`products`
-```
 
 #### LogOutOfRange
 
