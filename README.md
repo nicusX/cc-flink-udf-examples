@@ -2,19 +2,27 @@
 
 Examples of User Defined Functions for Confluent Cloud Flink.
 
-## Examples
+## Examples 
 
 ### Scalar Functions
 
-* Simple scalar function, multiple overloaded `eval()`
+* Simple scalar function, with multiple overloaded `eval()` implementations
   methods: [ConcatWithSeparator](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java)
-* Logging: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java)
+* Logging from UDF: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java)
 * Non-deterministic
   function: [RandomString](./src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java)
 
+SQL code to [test the scalar function examples](./docs/scalar_functions.md).
+
+
 ### Table Functions
 
-* Unnesting JSON fields: [JsonAddressToRow](./src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java)
+* Extracting JSON fields - extracting specific fields from a string field containing JSON: 
+  [JsonAddressToRow](./src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java)
+* Normalizing JSON nested elements - extracting nested elements from a string containing JSON, emitting one row per element: 
+  [NormalizeJsonArray](./src/main/java/io/confluent/flink/examples/udf/table/NormalizeJsonArray.java)
+
+SQL code to [test the table function examples](./docs/table_functions.md).
 
 ---
 
@@ -82,9 +90,9 @@ DESCRIBE FUNCTION EXTENDED `<function-name>`
 
 > ⚠️ When you load a new artifact, unregister the UDF using `DROP FUNCTION <function-name>` and re-register it.
 
-### Testing the UDFs in this repository
+### Testing these UDF examples
 
-Follow the additional instructions to test the UDF examples from this repository:
+Follow the additional instructions to test the UDF examples you find in this repository:
 
 1. [Testing scalar functions](./docs/scalar_functions.md)
 2. [Testing table functions](./docs/table_functions.md)
