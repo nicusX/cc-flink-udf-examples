@@ -7,22 +7,17 @@ Examples of User Defined Functions for Confluent Cloud Flink.
 ### Scalar Functions
 
 * Simple scalar function, with multiple overloaded `eval()` implementations
-  methods: [ConcatWithSeparator](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java)
-* Logging from UDF: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java)
+  methods: [ConcatWithSeparator](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java) — [usage](./docs/ConcatWithSeparator.md)
+* Logging from UDF: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java) — [usage](./docs/LogOutOfRange.md)
 * Non-deterministic
-  function: [RandomString](./src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java)
-
-SQL code to [test the scalar function examples](./docs/scalar_functions.md).
-
+  function: [RandomString](./src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java) — [usage](./docs/RandomString.md)
 
 ### Table Functions
 
-* Extracting JSON fields - extracting specific fields from a string field containing JSON: 
-  [JsonAddressToRow](./src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java)
-* Normalizing JSON nested elements - extracting nested elements from a string containing JSON, emitting one row per element: 
-  [NormalizeJsonArray](./src/main/java/io/confluent/flink/examples/udf/table/NormalizeJsonArray.java)
-
-SQL code to [test the table function examples](./docs/table_functions.md).
+* Extracting JSON fields - extracting specific fields from a string field containing JSON:
+  [JsonAddressToRow](./src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java) — [usage](./docs/JsonAddressToRow.md)
+* Normalizing JSON nested elements - extracting nested elements from a string containing JSON, emitting one row per element:
+  [NormalizeJsonArray](./src/main/java/io/confluent/flink/examples/udf/table/NormalizeJsonArray.java) — [usage](./docs/NormalizeJsonArray.md)
 
 ---
 
@@ -94,6 +89,9 @@ DESCRIBE FUNCTION EXTENDED `<function-name>`
 
 Follow the additional instructions to test the UDF examples you find in this repository:
 
-1. [Testing scalar functions](./docs/scalar_functions.md)
-2. [Testing table functions](./docs/table_functions.md)
+1. [ConcatWithSeparator](./docs/ConcatWithSeparator.md)
+2. [LogOutOfRange](./docs/LogOutOfRange.md)
+3. [RandomString](./docs/RandomString.md)
+4. [JsonAddressToRow](./docs/JsonAddressToRow.md)
+5. [NormalizeJsonArray](./docs/NormalizeJsonArray.md)
 
