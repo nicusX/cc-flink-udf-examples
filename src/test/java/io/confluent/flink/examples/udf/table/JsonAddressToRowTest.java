@@ -18,7 +18,9 @@ class JsonAddressToRowTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        // Initialize the UDF
         jsonToRow.open(null);
+        // Set the collector to capture the output
         jsonToRow.setCollector(new Collector<>() {
             @Override
             public void collect(Row row) {
