@@ -50,4 +50,18 @@ You can see the transitive provided dependencies in the Maven dependency tree:
 mvn dependency:tree -Dverbose | grep "provided"
 ```
 
+#### Shaded dependencies
+
+The Flink runtime includes a number of dependencies as *shaded*.  
+
+Shading dependencies means remapping the included classes and all references to a different package.
+For example, Flink includes Jackson2 with classes remapped from `com.fasterxml.jackson.*`
+to `org.apache.flink.shaded.jackson2.com.fasterxml.jackson.*`.
+
+Shaded dependencies do not cause conflicts.
+
+If your UDF code needs any of these libraries, you have the option of including it as a dependency or using the one shaded in
+Flink.
+
+> ⚠️ When you add `import` in your code, pay attention to whether you are importing the shaded class or the class you included explicitly.
 
