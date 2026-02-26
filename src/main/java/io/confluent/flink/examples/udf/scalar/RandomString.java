@@ -20,6 +20,6 @@ public class RandomString extends ScalarFunction {
     }
 
     public String eval(int length) {
-        return RandomStringUtils.secure().nextAlphabetic(length);
+        return RandomStringUtils.randomAlphabetic(length);
     }
 }

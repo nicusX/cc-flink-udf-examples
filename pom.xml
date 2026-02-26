@@ -36,17 +36,18 @@
         </dependency>
 
         <!-- External dependencies, added to the uber-jar -->
+
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.20.0</version>
-        </dependency>
-        <dependency>
+            <!-- Jackson 2 is used in the JsonAddressToRow example -->
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.21.0</version>
         </dependency>
-
+        <!--
+            Note: The RandomString example also uses Apache Commons Lang3,
+            but Commons Lang3 is also provided transitively by flink-table-api-java.
+            To prevent version clashes, we do not add comnmons-lang3, and we use the version provided by Flink.
+        -->
 
         <!-- Test dependencies -->
         <dependency>
@@ -67,6 +68,7 @@
             <version>${log4j.version}</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>

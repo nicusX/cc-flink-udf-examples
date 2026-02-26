@@ -20,6 +20,10 @@ Examples of User Defined Functions for Confluent Cloud Flink.
 
 ## Building and deploying the UDFs
 
+This repository provides a [POM file](pom.xml) with all required dependencies and configurations to build these examples.
+
+For and explanations about handling dependencies in your UDF projects, see [Java dependencies in UDFs](docs/java_dependencies.md).
+
 ### Packaging the artifact
 
 All user defined functions of this repo can be built using maven and are packaged in a single JAR file.
@@ -85,17 +89,3 @@ Follow the additional instructions to test the UDF examples from this repository
 1. [Testing scalar functions](./docs/scalar_functions.md)
 2. [Testing table functions](./docs/table_functions.md)
 
----
-
-## Defining Java Dependencies in a UDF project
-
-Check out the [`pom.xml`](pom.xml) of this project:
-
-* The Java target version is set to 17. Confluent Cloud currently supports Java 11 and 17.
-  You can compile the project with a JDK newer than 17, but the build target is set to 17 by the POM.
-  If you have a JDK 11 you can change `target.java.version` to `11` to avoid compilation errors.
-* At the time of writing, the latest Flink API supported for Confluent Cloud UDFs is `2.1.0`.
-* The POM creates an uber-jar which includes all additional dependencies needed by the UDF, using `maven-shade-plugin`.
-* Flink dependencies, such as `org.apache.flink:flink-table-api-java` and Log4j have scope `provided` so they are not included
-  in the uber-jar. It's important not to include any Flink dependency because it may cause conflict with what's provided
-  by the Confluent Cloud runtime.
