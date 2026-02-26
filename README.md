@@ -2,22 +2,25 @@
 
 Examples of User Defined Functions for Confluent Cloud Flink.
 
-## Examples 
+## Examples
 
 ### Scalar Functions
 
-* Simple scalar function, with multiple overloaded `eval()` implementations
-  methods: [ConcatWithSeparator](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java) — [usage](./docs/ConcatWithSeparator.md)
-* Logging from UDF: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java) — [usage](./docs/LogOutOfRange.md)
+* Simple scalar function:
+  [ConcatWithSeparator](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java), [usage](./docs/ConcatWithSeparator.md) -
+  Also shows multiple overloaded `eval()` implementations.
+* Logging from UDF: [LogOutOfRange](./src/main/java/io/confluent/flink/examples/udf/scalar/LogOutOfRange.java), [usage](./docs/LogOutOfRange.md).
 * Non-deterministic
-  function: [RandomString](./src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java) — [usage](./docs/RandomString.md)
+  function: [RandomString](./src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java), [usage](./docs/RandomString.md).
 
 ### Table Functions
 
-* Extracting JSON fields - extracting specific fields from a string field containing JSON:
-  [JsonAddressToRow](./src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java) — [usage](./docs/JsonAddressToRow.md)
-* Normalizing JSON nested elements - extracting nested elements from a string containing JSON, emitting one row per element:
-  [NormalizeJsonArray](./src/main/java/io/confluent/flink/examples/udf/table/NormalizeJsonArray.java) — [usage](./docs/NormalizeJsonArray.md)
+* Extract JSON fields:
+  [JsonAddressToRow](./src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java), [usage](./docs/JsonAddressToRow.md) -
+  Extract specific fields from a string field containing JSON.
+* Normalize JSON nested elements:
+  [NormalizeJsonArray](./src/main/java/io/confluent/flink/examples/udf/table/NormalizeJsonArray.java), [usage](./docs/NormalizeJsonArray.md) -
+  Extract nested elements from a string containing JSON, emitting one row per element.
 
 ---
 
@@ -25,11 +28,11 @@ Examples of User Defined Functions for Confluent Cloud Flink.
 
 This repository provides a [POM file](pom.xml) with all required dependencies and configurations to build these examples.
 
-For and explanations about handling dependencies in your UDF projects, see [Java dependencies in UDFs](docs/java_dependencies.md).
+For an explanation about handling dependencies in your UDF projects, see [Java dependencies in UDFs](docs/java_dependencies.md).
 
 ### Packaging the artifact
 
-All user defined functions of this repo can be built using maven and are packaged in a single JAR file.
+All user defined functions of this repo can be built using Maven and are packaged in a single JAR file.
 
 Build the artifact:
 ```shell
@@ -38,9 +41,9 @@ mvn package
 
 ### Loading the artifact
 
-To use the UDFs you need to upload the artifact (the JAR file) first.
+To use the UDFs, you need to upload the artifact (the JAR file) first.
 
-Go to *Environments* > select your environment > *Artifacts*
+Go to *Environments* > select your environment > *Artifacts*.
 
 Upload the artifact selecting *Java* as type of UDF, and being careful to select the same cloud provider and region
 where your Compute Pool and Cluster have been created.
@@ -60,7 +63,7 @@ Cloud Flink organization.
 
 ### Registering UDFs
 
-Before using a UDF in SQL you need to register it using a `CREATE FUNCTION` statement:
+Before using a UDF in SQL, you need to register it using a `CREATE FUNCTION` statement:
 
 ```sql
 CREATE FUNCTION `<function-name>`
@@ -82,10 +85,9 @@ You can verify the function registration:
 DESCRIBE FUNCTION EXTENDED `<function-name>`
 ```
 
-
 > ⚠️ When you load a new artifact, unregister the UDF using `DROP FUNCTION <function-name>` and re-register it.
 
-### Testing these UDF examples
+### Testing the functions in SQL
 
 Follow the additional instructions to test the UDF examples you find in this repository:
 
