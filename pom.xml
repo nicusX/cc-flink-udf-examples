@@ -43,11 +43,6 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.21.0</version>
         </dependency>
-        <!--
-            Note: The RandomString example also uses Apache Commons Lang3,
-            but Commons Lang3 is also provided transitively by flink-table-api-java.
-            To prevent version clashes, we do not add comnmons-lang3, and we use the version provided by Flink.
-        -->
 
         <!-- Test dependencies -->
         <dependency>
@@ -69,10 +64,68 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Adding the latest Commons Lang3 to deliberately cause a conflict -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.20.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
+            <!--
+                Testing Maven Enforcer
+            -->
+
+            <!-- This configuration doesn't catch the Commons Lang3 conflict -->
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-enforcer-plugin</artifactId>-->
+<!--                <version>3.5.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>enforce</id>-->
+<!--                        <goals>-->
+<!--                            <goal>enforce</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <rules>-->
+<!--                                <dependencyConvergence/>-->
+<!--                            </rules>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+
+            <!-- This configuration does catch the Commons Lang3 conflict. But it also catches conflicts if Commons Lang3
+                 is removed as explicit dependency, because multiple conflicting versions come with
+                 org.apache.flink:flink-table-api-java:jar:2.1.0
+             -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <dependencyConvergence>
+                                    <excludedScopes>
+                                        <scope>test</scope>
+                                    </excludedScopes>
+                                </dependencyConvergence>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Maven Shade Plugin creates an uber-jar including all (non-provided, non-test) dependencies -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
