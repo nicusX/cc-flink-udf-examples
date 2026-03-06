@@ -30,7 +30,7 @@ import org.apache.logging.log4j.Logger;
  * NOTE: Flink runtime includes a shaded version of Jackson2 at the package
  * org.apache.flink.shaded.jackson2.com.fasterxml.jackson.
  * We could have used it for this example. For demonstration purposes, we use the version of Jackson2 added to the
- * project as additional dependency.
+ * project as additional dependency (note the imports of com.fasterxml.jackson.core..., above).
  */
 @FunctionHint(output = @DataTypeHint("ROW<street STRING, postcode STRING, city STRING>"))
 public class JsonAddressToRow extends TableFunction<Row> {
@@ -42,12 +42,19 @@ public class JsonAddressToRow extends TableFunction<Row> {
 
     @Override
     public void open(FunctionContext context) throws Exception {
-        super.open(context);
-        // Any expensive resources should be initialized in the open() method and not in eval(), not to be executed on
-        // every processed record.
-        // These re-used resources do not have to be thread-safe. Flink creates different instances of the function class for
-        // each processing thread.
-        mapper = new ObjectMapper();
+        try {
+            // Any expensive resources should be initialized in the open() method and not in eval(), not to be executed on
+            // every processed record.
+            // These re-used resources do not have to be thread-safe. Flink creates different instances of the function class for
+            // each processing thread.
+            mapper = new ObjectMapper();
+        } catch (Exception ex) {
+            // Explicitly logging exceptions in open() helps with troubleshooting. Exceptions happening during the UDF
+            // initialization may be reported as generic error by the UI.
+            LOGGER.error("UDF open() failed", ex);
+            // Do not forget to rethrow the exception!
+            throw ex;
+        }
     }
 
     public void eval(String json, boolean failOnError) {
