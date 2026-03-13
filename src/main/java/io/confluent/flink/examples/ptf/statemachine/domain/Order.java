@@ -33,7 +33,7 @@ public class Order {
 
     // Timestamp when state changes happened
     public Instant orderCreatedAt;
-    public Instant orderCompletedAt;
+
     public Instant orderPaidAt;
     public Instant orderShippedAt;
 
