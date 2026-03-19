@@ -4,7 +4,7 @@ Examples of User Defined Functions for Confluent Cloud Flink.
 
 ## Examples
 
-### Scalar Functions
+### Scalar Functions (UDF)
 
 * Simple scalar function:
   [ConcatWithSeparator](./src/main/java/io/confluent/flink/examples/udf/scalar/ConcatWithSeparator.java), [usage](./docs/ConcatWithSeparator.md) -
@@ -13,7 +13,7 @@ Examples of User Defined Functions for Confluent Cloud Flink.
 * Non-deterministic
   function: [RandomString](./src/main/java/io/confluent/flink/examples/udf/scalar/RandomString.java), [usage](./docs/RandomString.md).
 
-### Table Functions
+### Table Functions (UDTF)
 
 * Extract JSON fields:
   [JsonAddressToRow](./src/main/java/io/confluent/flink/examples/udf/table/JsonAddressToRow.java), [usage](./docs/JsonAddressToRow.md) -
@@ -22,9 +22,16 @@ Examples of User Defined Functions for Confluent Cloud Flink.
   [NormalizeJsonArray](./src/main/java/io/confluent/flink/examples/udf/table/NormalizeJsonArray.java), [usage](./docs/NormalizeJsonArray.md) -
   Extract nested elements from a string containing JSON, emitting one row per element.
 
+### Process Table Functions (PTF)
+
+> ℹ️Process Table Functions (PTF) are currently not yet publicly available in Confluent Cloud Flink.
+
+* Entity State Machine: 
+  [EntityStateMachine](src/main/java/io/confluent/flink/examples/ptf/statemachine/EntityStateMachine.java), [usage](docs/EntityStateMachine-PTF.md).
+
 ---
 
-## Building and deploying the UDFs
+## Building and deploying the user defined functions
 
 This repository provides a [POM file](pom.xml) with all required dependencies and configurations to build these examples.
 
