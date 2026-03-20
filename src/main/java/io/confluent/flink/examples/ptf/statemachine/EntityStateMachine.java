@@ -14,6 +14,7 @@ import org.apache.flink.types.Row;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static io.confluent.flink.examples.ptf.statemachine.domain.Order.OrderStatus.CREATED;
@@ -50,7 +51,7 @@ import static org.apache.flink.table.annotation.ArgumentTrait.SET_SEMANTIC_TABLE
  * at INFO or higher on every single record.
  */
 // Output row schema - note that orderId is automatically passed through as partition key
-@DataTypeHint("ROW<customerId STRING, customerName STRING, deliveryAddress STRING, trackingNumber STRING, status STRING, items ARRAY<ROW<product STRING, quantity INT, unitPrice DECIMAL(10, 2)>>, orderCreatedAt TIMESTAMP(3), orderPaidAt TIMESTAMP(3), orderShippedAt TIMESTAMP(3)>")
+@DataTypeHint("ROW<customerId STRING, customerName STRING, deliveryAddress STRING, trackingNumber STRING, status STRING, items ARRAY<ROW<product STRING, quantity INT, unitPrice DECIMAL(10, 2)>>, totalPrice DECIMAL(10, 2), orderCreatedAt TIMESTAMP(3), orderPaidAt TIMESTAMP(3), orderShippedAt TIMESTAMP(3)>")
 public class EntityStateMachine extends ProcessTableFunction<Row> {
     private static final Logger LOG = LogManager.getLogger(EntityStateMachine.class);
 
@@ -118,12 +119,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
 
                 // Apply the CreateOrder event
                 OrderEvent.CreateOrder createOrderEvent = (OrderEvent.CreateOrder) event;
-                if (!orderId.equals(createOrderEvent.orderId)) {
-                    // This can happen if you wrongly partitioned the PTF invocation
-                    LOG.error("Inconsistent orderId. Partition:'{}', event orderId: '{}'. Have you partitioned the PTF invocation by orderId?", orderId, createOrderEvent.orderId);
-                    throw new RuntimeException("Inconsistent OrderId");
-                }
-                orderState.orderId = createOrderEvent.orderId;
+                orderState.orderId = orderId;
                 orderState.customerId = createOrderEvent.customerId;
                 orderState.customerName = createOrderEvent.customerName;
                 orderState.orderCreatedAt = eventTime;
@@ -150,6 +146,13 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                 newItem.unitPrice = addItemEvent.unitPrice;
 
                 orderState.items = ArrayUtils.add(orderState.items, newItem);
+
+                // Recalculate total price
+                orderState.totalPrice = BigDecimal.ZERO;
+                for (Order.OrderItem item : orderState.items) {
+                    orderState.totalPrice = orderState.totalPrice.add(
+                            item.unitPrice.multiply(BigDecimal.valueOf(item.quantity)));
+                }
 
                 // No order status change. No output to emit in this case
                 emitOutput = false;
@@ -194,7 +197,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                 OrderEvent.ShipOrder shipOrderEvent = (OrderEvent.ShipOrder) event;
                 orderState.trackingNumber = shipOrderEvent.trackingNumber;
 
-                // Order status change
+                // Order status changeche
                 orderState.status = SHIPPED.name();
                 orderState.orderShippedAt = eventTime;
                 LOG.info("Order {} status changed to {} at {}", orderId, orderState.status, eventTime);
@@ -223,6 +226,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                     orderState.trackingNumber,
                     orderState.status,
                     itemRows,
+                    orderState.totalPrice,
                     orderState.orderCreatedAt,
                     orderState.orderPaidAt,
                     orderState.orderShippedAt

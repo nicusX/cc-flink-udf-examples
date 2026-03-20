@@ -38,6 +38,9 @@ public class Order {
     // List of items
     public OrderItem[] items = new OrderItem[0];
 
+    @DataTypeHint("DECIMAL(10, 2)")
+    public BigDecimal totalPrice = BigDecimal.ZERO;
+
     // Timestamp when state changes happened
     @DataTypeHint("TIMESTAMP(3)")
     public LocalDateTime orderCreatedAt;

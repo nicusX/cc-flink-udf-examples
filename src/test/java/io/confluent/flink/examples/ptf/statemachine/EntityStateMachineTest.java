@@ -41,7 +41,7 @@ class EntityStateMachineTest {
     void createOrderSetsStateAndEmitsRow() throws Exception {
         ptf.eval(orderState, inputRow("order-1", "CREATE", "2024-01-15T10:00:00",
                 """
-                {"orderId":"order-1","customerId":"cust-1","customerName":"Alice"}
+                {"customerId":"cust-1","customerName":"Alice"}
                 """));
 
         assertThat(orderState.orderId).isEqualTo("order-1");
@@ -71,6 +71,7 @@ class EntityStateMachineTest {
         assertThat(orderState.items[0].product).isEqualTo("Widget");
         assertThat(orderState.items[0].quantity).isEqualTo(3);
         assertThat(orderState.items[0].unitPrice).isEqualByComparingTo(new BigDecimal("9.99"));
+        assertThat(orderState.totalPrice).isEqualByComparingTo(new BigDecimal("29.97"));
         assertThat(orderState.status).isEqualTo("CREATED");
 
         assertThat(collected).isEmpty();
@@ -133,13 +134,14 @@ class EntityStateMachineTest {
         assertThat(items).hasSize(1);
         assertThat(items[0].getField(0)).isEqualTo("Gadget");
         assertThat(items[0].getField(1)).isEqualTo(1);
+        assertThat(row.getField(6)).isEqualTo(new BigDecimal("19.99"));
     }
 
     @Test
     void fullLifecycleEmitsThreeRows() throws Exception {
         ptf.eval(orderState, inputRow("order-1", "CREATE", "2024-01-15T10:00:00",
                 """
-                {"orderId":"order-1","customerId":"cust-1","customerName":"Alice"}
+                {"customerId":"cust-1","customerName":"Alice"}
                 """));
         ptf.eval(orderState, inputRow("order-1", "ADD_ITEM", "2024-01-15T10:05:00",
                 """
@@ -179,6 +181,8 @@ class EntityStateMachineTest {
         assertThat(items).hasSize(2);
         assertThat(items[0].getField(0)).isEqualTo("Widget");
         assertThat(items[1].getField(0)).isEqualTo("Gadget");
+        // totalPrice = (2 * 5.00) + (1 * 15.50) = 25.50
+        assertThat(lastRow.getField(6)).isEqualTo(new BigDecimal("25.50"));
     }
 
     @Test
@@ -187,7 +191,7 @@ class EntityStateMachineTest {
 
         assertThatThrownBy(() -> ptf.eval(orderState, inputRow("order-1", "CREATE", "2024-01-15T12:00:00",
                 """
-                {"orderId":"order-1","customerId":"cust-2","customerName":"Bob"}
+                {"customerId":"cust-2","customerName":"Bob"}
                 """)))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Invalid Order Event");
@@ -209,7 +213,7 @@ class EntityStateMachineTest {
     private void applyCreate() throws Exception {
         ptf.eval(orderState, inputRow("order-1", "CREATE", "2024-01-15T10:00:00",
                 """
-                {"orderId":"order-1","customerId":"cust-1","customerName":"Alice"}
+                {"customerId":"cust-1","customerName":"Alice"}
                 """));
     }
 

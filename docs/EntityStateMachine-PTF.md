@@ -29,7 +29,6 @@ The `order_events` table has the following fields:
 **CREATE** — creates a new order
 ```json
 {
-  "orderId": "order-1",
   "customerId": "cust-1",
   "customerName": "Alice"
 }
@@ -99,7 +98,9 @@ CREATE TABLE order_events (
     eventType STRING,
     eventTime STRING,
     eventPayload STRING
-) WITH (
+) DISTRIBUTED BY (orderId) INTO 6 BUCKETS
+WITH (
+    'changelog.mode'='append',
     'kafka.consumer.isolation-level'='read-uncommitted',
     'scan.startup.mode'='latest-offset'
 );
@@ -118,10 +119,13 @@ CREATE TABLE orders (
     trackingNumber STRING,
     `status` STRING,
     items ARRAY<ROW<product STRING, quantity INT, unitPrice DECIMAL(10, 2)>>,
+    totalPrice DECIMAL(10, 2),
     orderCreatedAt TIMESTAMP(3),
     orderPaidAt TIMESTAMP(3),
     orderShippedAt TIMESTAMP(3)
-) WITH (
+) DISTRIBUTED BY (orderId) INTO 6 BUCKETS
+WITH (
+    'changelog.mode'='append',
     'kafka.consumer.isolation-level'='read-uncommitted',
     'scan.startup.mode'='latest-offset'
 );
@@ -157,7 +161,7 @@ SELECT * FROM orders;
 ```sql
 INSERT INTO order_events VALUES
     ('order-1', 'CREATE', '2024-01-15T10:00:00',
-     '{"orderId":"order-1","customerId":"cust-1","customerName":"Alice"}');
+     '{"customerId":"cust-1","customerName":"Alice"}');
 -- A new Order in status CREATED should be emitted
 
 INSERT INTO order_events VALUES
@@ -167,7 +171,7 @@ INSERT INTO order_events VALUES
 
 INSERT INTO order_events VALUES
     ('order-1', 'ADD_ITEM', '2024-01-15T10:06:00',
-     '{"product":"Gadget","quantity":1,"unitPrice":15.50}');
+     '{"product":"FooBar","quantity":3,"unitPrice":7.00}');
 -- No output emitted (no status change)
 
 INSERT INTO order_events VALUES
@@ -192,15 +196,9 @@ INSERT INTO order_events VALUES
 ```sql
 INSERT INTO order_events VALUES
     ('order-2', 'CREATE', '2024-01-15T14:00:00',
-     '{"orderId":"order-2","customerId":"cust-2","customerName":"Bob"}');
--- A new Order in status CREATED should be emitted
-
-INSERT INTO order_events VALUES
+     '{"customerId":"cust-2","customerName":"Bob"}'),
     ('order-2', 'ADD_ITEM', '2024-01-15T14:05:00',
-     '{"product":"Sprocket","quantity":4,"unitPrice":3.25}');
--- No output emitted (no status change)
-
-INSERT INTO order_events VALUES
+     '{"product":"Sprocket","quantity":4,"unitPrice":3.25}'),
     ('order-2', 'PAY', '2024-01-15T15:00:00', '{}');
--- An order with status PAID should be emitted
+-- Two order records should be emitted: one in CREATED status, one in PAID status
 ```

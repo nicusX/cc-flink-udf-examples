@@ -21,7 +21,6 @@ public class OrderEvent {
     }
 
     public static class CreateOrder extends OrderEvent {
-        public String orderId;
         public String customerId;
         public String customerName;
     }
