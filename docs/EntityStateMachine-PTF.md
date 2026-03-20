@@ -138,7 +138,15 @@ FROM EntityStateMachine(
 );
 ```
 
-### 5. Insert sample events
+### 5. Observe the PTF output
+
+In a separate SQL Workspace tab, run:
+
+```sql
+SELECT * FROM orders;
+```
+
+### 6. Insert sample events
 
 > ℹ️ Run step 6 in a separate SQL Workspace tab to observe the output as you insert events.
 
@@ -174,7 +182,7 @@ INSERT INTO order_events VALUES
 INSERT INTO order_events VALUES
     ('order-1', 'SHIP', '2024-01-16T09:00:00',
      '{"trackingNumber":"TRACK-456"}');
--- An order with status SHIPPED should be emitted
+-- An order with status SHIPPED and with a tracking nr should be emitted
 
 ```
 
@@ -195,12 +203,4 @@ INSERT INTO order_events VALUES
 INSERT INTO order_events VALUES
     ('order-2', 'PAY', '2024-01-15T15:00:00', '{}');
 -- An order with status PAID should be emitted
-```
-
-### 6. Observe the PTF output
-
-In a separate SQL Workspace tab, run:
-
-```sql
-SELECT * FROM orders;
 ```

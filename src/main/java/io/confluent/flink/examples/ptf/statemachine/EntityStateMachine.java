@@ -23,32 +23,67 @@ import static org.apache.flink.table.annotation.ArgumentTrait.ROW_SEMANTIC_TABLE
 import static org.apache.flink.table.annotation.ArgumentTrait.SET_SEMANTIC_TABLE;
 
 /**
- * This PTF materializes the state of an entity (Orders) based on incoming events.
- * Each event only contains partial information about the entity. This PTF maintains the complete state.
+ * This PTF implements an Event Sourcing pattern, materializing the state of an entity (Orders) based on incoming events.
  * <p>
- * The input records contains 4 fields: 1/ orderId (String), 2/ eventTime (STRING - ISO datetime), 3/ eventType (String), 4/ event payload (STRING).
- * The event payload is a JSON with the fields specific to that event type.
+ * Events only contain partial information about the entity. This PTF maintains the complete state of each entity in Flink state.
  * <p>
- * When an event changes orderStatus, the entire order is emitted as a ROW. Order Items are represented as an ARRAY of ROWS
+ * The input records (Events) contain 4 fields: 1/ orderId (String), 2/ eventTime (STRING - ISO datetime), 3/ eventType (String), 4/ event payload (STRING).
+ * <p>
+ * <p>
+ * There are different types of events, each with a specific payload. To represent these polymorphic events, the payload
+ * is JSON in a single  STRING field of the input record.
+ * <p>
+ * The PTF emits a ROW representing the full state of an entity only when orderStatus changes.
+ * The output record is structured: the items field contains an ARRAY of ROWs, each representing an order item.
+ * <p>
+ * The PTF invocation must be partitioned by orderId. For example:
+ * <code>
+ * INSERT INTO orders
+ * SELECT *
+ * FROM EntityStateMachine(
+ * TABLE order_events
+ * PARTITION BY orderId
+ * );
+ * </code>
+ * <p>
+ * In this PTF we are logging on every processed record. In a real world, production scenario it is not advisable to log
+ * at INFO or higher on every single record.
  */
 // Output row schema - note that orderId is automatically passed through as partition key
 @DataTypeHint("ROW<customerId STRING, customerName STRING, deliveryAddress STRING, trackingNumber STRING, status STRING, items ARRAY<ROW<product STRING, quantity INT, unitPrice DECIMAL(10, 2)>>, orderCreatedAt TIMESTAMP(3), orderPaidAt TIMESTAMP(3), orderShippedAt TIMESTAMP(3)>")
 public class EntityStateMachine extends ProcessTableFunction<Row> {
     private static final Logger LOG = LogManager.getLogger(EntityStateMachine.class);
 
+    /**
+     * Jackson Object Mapper.
+     * Marked as transient, to prevent operator initialization errors. Initialized in the open() method, when the operator is initialized.
+     */
     private transient ObjectMapper mapper;
 
+    /**
+     * Initializes "expensive" resources only once
+     */
     @Override
     public void open(FunctionContext context) throws Exception {
         // Initialize the mapper only once
         mapper = new ObjectMapper();
     }
 
+    /**
+     * Event-handler logic.
+     *
+     * @param orderState state of a specific partition (a specific orderId).
+     *                   When a given orderId is observed for the first time, the Order is initialized using the default (no-arg) constructor and passed to the function.
+     *                   Any mutation to orderState is preserved, until the state TTL expires (90 days in this case, see @StateHint annotation).
+     * @param input      input ROW containing the order events.
+     */
     public void eval(
+            // Specify the TTL for each order.
             @StateHint(ttl = "90 days") Order orderState,
+            // Input ROW. The schema if the input ROW is implied by the PTF code and not declared explicitly
             @ArgumentHint({SET_SEMANTIC_TABLE}) Row input) throws Exception {
 
-        // Extract orderId, eventType, and timestamp
+        // Extract the main field from the input ROW containing the event envelope
         String orderId = input.getFieldAs("orderId");
         OrderEvent.EventType eventType = OrderEvent.EventType.valueOf(input.getFieldAs("eventType"));
         LocalDateTime eventTime = LocalDateTime.parse(input.getFieldAs("eventTime"));
@@ -56,43 +91,38 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
 
         LOG.info("Processing event {} for order {} at {}", eventType, orderId, eventTime);
 
-        // Based on eventType, parse the eventPayload field of the input Row and create the correct OrderEvent
-        OrderEvent event = null;
-        switch (eventType) {
-            case CREATE:
-                // Parse the CreateOrder event
-                event = mapper.readValue(eventPayload, OrderEvent.CreateOrder.class);
-                break;
-            case ADD_ITEM:
-                event = mapper.readValue(eventPayload, OrderEvent.AddItem.class);
-                break;
-            case UPDATE_ADDRESS:
-                event = mapper.readValue(eventPayload, OrderEvent.UpdateAddress.class);
-                break;
-            case PAY:
-                event = mapper.readValue(eventPayload, OrderEvent.PayOrder.class);
-                break;
-            case SHIP:
-                event = mapper.readValue(eventPayload, OrderEvent.ShipOrder.class);
-                break;
-        }
+        // Parse the polymorphic event,
+        // Based on eventType, parse the JSON event payload into different OrderEvent types
+        OrderEvent event = switch (eventType) {
+            case CREATE -> mapper.readValue(eventPayload, OrderEvent.CreateOrder.class);
+            case ADD_ITEM -> mapper.readValue(eventPayload, OrderEvent.AddItem.class);
+            case UPDATE_ADDRESS -> mapper.readValue(eventPayload, OrderEvent.UpdateAddress.class);
+            case PAY -> mapper.readValue(eventPayload, OrderEvent.PayOrder.class);
+            case SHIP -> mapper.readValue(eventPayload, OrderEvent.ShipOrder.class);
+        };
 
+        /// Business logic of the state machine
 
-        // Implementation of the state machine
+        // Update the entity state based on the event
+        // Decide whether the PTF should emit the output
         boolean emitOutput = false;
         switch (eventType) {
             case CREATE:
-                // Status validation
+                // Simple status validation
+                // Note that, if status validation fails, the PTF throws an exception and the Flink SQL statement stops.
+                // In a real world scenario you may want to implement a more refined error handling approach.
                 if (orderState.status != null) {
+                    LOG.error("Invalid Order Event '{}' for status '{}'", eventType, orderState.status);
                     throw new RuntimeException("Invalid Order Event '" + eventType + "' for status '" + orderState.status + "'");
                 }
 
-                // Process the CreateOrder event
+                // Apply the CreateOrder event
                 OrderEvent.CreateOrder createOrderEvent = (OrderEvent.CreateOrder) event;
                 if (!orderId.equals(createOrderEvent.orderId)) {
+                    // This can happen if you wrongly partitioned the PTF invocation
+                    LOG.error("Inconsistent orderId. Partition:'{}', event orderId: '{}'. Have you partitioned the PTF invocation by orderId?", orderId, createOrderEvent.orderId);
                     throw new RuntimeException("Inconsistent OrderId");
                 }
-
                 orderState.orderId = createOrderEvent.orderId;
                 orderState.customerId = createOrderEvent.customerId;
                 orderState.customerName = createOrderEvent.customerName;
@@ -102,6 +132,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                 // Order status change
                 orderState.status = CREATED.name();
                 LOG.info("Order {} status changed to {} at {}", orderId, orderState.status, eventTime);
+                // Because the order status changed, the function must emit the full order
                 emitOutput = true;
                 break;
 
@@ -120,7 +151,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
 
                 orderState.items = ArrayUtils.add(orderState.items, newItem);
 
-                // No order status change. No output to emit
+                // No order status change. No output to emit in this case
                 emitOutput = false;
                 break;
 
@@ -131,7 +162,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                     throw new RuntimeException("Invalid Order Event '" + eventType + "' for status '" + orderState.status + "'");
                 }
 
-                // Process UpdateAddress event
+                // Apply the UpdateAddress event
                 OrderEvent.UpdateAddress updateAddressEvent = (OrderEvent.UpdateAddress) event;
                 orderState.deliveryAddress = updateAddressEvent.deliveryAddress;
 
@@ -145,8 +176,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                     throw new RuntimeException("Invalid Order Event '" + eventType + "' for status '" + orderState.status + "'");
                 }
 
-                // No fields to extract from PayOrder
-
+                // Apply the PayOrder event
                 // Order status change
                 orderState.status = PAID.name();
                 orderState.orderPaidAt = eventTime;
@@ -160,7 +190,7 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                     throw new RuntimeException("Invalid Order Event '" + eventType + "' for status '" + orderState.status + "'");
                 }
 
-                // Process ShipOrder event
+                // Apply the ShipOrder event
                 OrderEvent.ShipOrder shipOrderEvent = (OrderEvent.ShipOrder) event;
                 orderState.trackingNumber = shipOrderEvent.trackingNumber;
 
@@ -170,16 +200,22 @@ public class EntityStateMachine extends ProcessTableFunction<Row> {
                 LOG.info("Order {} status changed to {} at {}", orderId, orderState.status, eventTime);
                 emitOutput = true;
                 break;
+
+            default:
+                LOG.error("Invalid Order status '{}'", orderState.status);
+                throw new RuntimeException("Invalid Order status '" + orderState.status + "'");
         }
 
         // Conditionally emit the output
         if (emitOutput) {
+            // Build nested Order Items
             Row[] itemRows = new Row[orderState.items.length];
             for (int i = 0; i < orderState.items.length; i++) {
                 Order.OrderItem oi = orderState.items[i];
                 itemRows[i] = Row.of(oi.product, oi.quantity, oi.unitPrice);
             }
 
+            // Emit a single row representing the entire Order
             collect(Row.of(
                     orderState.customerId,
                     orderState.customerName,

@@ -6,7 +6,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Represent the state of an Order.
+ * State of an Order entity.
+ * <p>
+ * Flink @DataTypeHint annotations are required to allow Flink serializing the state correctly.
  */
 public class Order {
 

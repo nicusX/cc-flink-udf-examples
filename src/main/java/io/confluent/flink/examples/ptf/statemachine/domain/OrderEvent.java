@@ -5,7 +5,10 @@ import org.apache.flink.table.annotation.DataTypeHint;
 import java.math.BigDecimal;
 
 /**
- * Order event contained in the event payload field as JSON
+ * Order event payload, represented as JSON in the event record.
+ *
+ * This class is not serialized by Flink directly. The PTF use it to deserialize the JSON event payload using Jackson 2
+ * ObjectMapper.
  */
 public class OrderEvent {
 
@@ -30,7 +33,6 @@ public class OrderEvent {
     public static class AddItem extends OrderEvent {
         public String product;
         public int quantity;
-        @DataTypeHint("DECIMAL(10, 4)")
         public BigDecimal unitPrice;
     }
 
