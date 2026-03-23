@@ -21,6 +21,10 @@ Examples of User Defined Functions for Confluent Cloud Flink.
 * Normalize JSON nested elements:
   [NormalizeJsonArray](./src/main/java/io/confluent/flink/examples/udf/table/NormalizeJsonArray.java), [usage](./docs/NormalizeJsonArray.md) -
   Extract nested elements from a string containing JSON, emitting one row per element.
+* Parse a structured JSON payload:
+  [ParseStructuredJson](./src/main/java/io/confluent/flink/examples/udf/table/ParseStructuredJson.java), [usage](./docs/ParseStructuredJson.md) -
+  Parse a complex, structured JSON payload without a schema, execute programmatic validation, and emit a single ROW
+  containing nested SQL elements such as ARRAYs and ROWs.
 
 ### Process Table Functions (PTF)
 
@@ -103,4 +107,6 @@ Follow the additional instructions to test the UDF examples you find in this rep
 3. [RandomString](./docs/RandomString.md)
 4. [JsonAddressToRow](./docs/JsonAddressToRow.md)
 5. [NormalizeJsonArray](./docs/NormalizeJsonArray.md)
+6. [ParseStructuredJson](./docs/ParseStructuredJson.md)
+7. [EntityStateMachine (PTF)](./docs/EntityStateMachine-PTF.md)
 
