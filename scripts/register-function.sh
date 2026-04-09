@@ -4,15 +4,14 @@
 # Usage:
 #   register-function.sh --function <function-name> --class <class-name> --artifact-id <artifact-id> --database <database> [--quiet]
 #                        [--environment-id <id>] [--cloud <provider>] [--region <region>]
+#                        [--compute-pool-id <id>] [--catalog <catalog>]
 #
 # Required env vars (set by .secrets/credentials.sh), overridable via parameters:
 #   CONFLUENT_FLINK_ENVIRONMENT_ID  (--environment-id)
-#   CONFLUENT_FLINK_COMPUTE_POOL_ID
+#   CONFLUENT_FLINK_COMPUTE_POOL_ID (--compute-pool-id)
 #   CONFLUENT_FLINK_CLOUD_PROVIDER  (--cloud)
 #   CONFLUENT_FLINK_CLOUD_REGION    (--region)
-#
-# Optional env vars:
-#   CONFLUENT_FLINK_CATALOG  — passed to flink statement create if set
+#   CONFLUENT_FLINK_CATALOG         (--catalog)
 
 set -euo pipefail
 
@@ -24,24 +23,28 @@ error() { echo "$@" >&2; }
 FUNCTION_NAME=""
 CLASS_NAME=""
 ARTIFACT_ID=""
-DATABASE=""
 QUIET=false
 OPT_ENVIRONMENT_ID=""
 OPT_CLOUD=""
 OPT_REGION=""
+OPT_COMPUTE_POOL_ID=""
+OPT_DATABASE=""
+OPT_CATALOG=""
 
-usage="Usage: $0 --function <function-name> --class <class-name> --artifact-id <artifact-id> --database <database> [--quiet] [--environment-id <id>] [--cloud <provider>] [--region <region>]"
+usage="Usage: $0 --function <function-name> --class <class-name> --artifact-id <artifact-id> [--quiet] [--environment-id <id>] [--cloud <provider>] [--region <region>] [--compute-pool-id <id>] [--database <database>] [--catalog <catalog>]"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --function)       FUNCTION_NAME="$2";      shift 2 ;;
-    --class)          CLASS_NAME="$2";         shift 2 ;;
-    --artifact-id)    ARTIFACT_ID="$2";        shift 2 ;;
-    --database)       DATABASE="$2";           shift 2 ;;
-    --quiet)          QUIET=true;              shift   ;;
-    --environment-id) OPT_ENVIRONMENT_ID="$2"; shift 2 ;;
-    --cloud)          OPT_CLOUD="$2";          shift 2 ;;
-    --region)         OPT_REGION="$2";         shift 2 ;;
+    --function)        FUNCTION_NAME="$2";       shift 2 ;;
+    --class)           CLASS_NAME="$2";          shift 2 ;;
+    --artifact-id)     ARTIFACT_ID="$2";         shift 2 ;;
+    --quiet)           QUIET=true;               shift   ;;
+    --environment-id)  OPT_ENVIRONMENT_ID="$2";  shift 2 ;;
+    --cloud)           OPT_CLOUD="$2";           shift 2 ;;
+    --region)          OPT_REGION="$2";          shift 2 ;;
+    --compute-pool-id) OPT_COMPUTE_POOL_ID="$2"; shift 2 ;;
+    --database)        OPT_DATABASE="$2";        shift 2 ;;
+    --catalog)         OPT_CATALOG="$2";         shift 2 ;;
     *) error "Unknown parameter: $1"
        error "${usage}"
        exit 1 ;;
@@ -49,9 +52,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 missing_args=0
-for param in FUNCTION_NAME CLASS_NAME ARTIFACT_ID DATABASE; do
+for param in FUNCTION_NAME CLASS_NAME ARTIFACT_ID; do
   if [[ -z "${!param}" ]]; then
-    error "Error: --${param,,} is required."
+    error "Error: --$(echo "${param}" | tr '[:upper:]' '[:lower:]' | tr '_' '-') is required."
     missing_args=1
   fi
 done
@@ -62,9 +65,12 @@ fi
 
 # --- Parameter resolution (CLI params override env vars) ---
 
-[[ -n "${OPT_ENVIRONMENT_ID}" ]] && CONFLUENT_FLINK_ENVIRONMENT_ID="${OPT_ENVIRONMENT_ID}"
-[[ -n "${OPT_CLOUD}" ]]          && CONFLUENT_FLINK_CLOUD_PROVIDER="${OPT_CLOUD}"
-[[ -n "${OPT_REGION}" ]]         && CONFLUENT_FLINK_CLOUD_REGION="${OPT_REGION}"
+[[ -n "${OPT_ENVIRONMENT_ID}" ]]  && CONFLUENT_FLINK_ENVIRONMENT_ID="${OPT_ENVIRONMENT_ID}"
+[[ -n "${OPT_CLOUD}" ]]           && CONFLUENT_FLINK_CLOUD_PROVIDER="${OPT_CLOUD}"
+[[ -n "${OPT_REGION}" ]]          && CONFLUENT_FLINK_CLOUD_REGION="${OPT_REGION}"
+[[ -n "${OPT_COMPUTE_POOL_ID}" ]] && CONFLUENT_FLINK_COMPUTE_POOL_ID="${OPT_COMPUTE_POOL_ID}"
+[[ -n "${OPT_DATABASE}" ]]        && CONFLUENT_FLINK_DATABASE="${OPT_DATABASE}"
+[[ -n "${OPT_CATALOG}" ]]         && CONFLUENT_FLINK_CATALOG="${OPT_CATALOG}"
 
 # --- Environment variable validation ---
 
@@ -73,6 +79,7 @@ REQUIRED_VARS=(
   CONFLUENT_FLINK_COMPUTE_POOL_ID
   CONFLUENT_FLINK_CLOUD_PROVIDER
   CONFLUENT_FLINK_CLOUD_REGION
+  CONFLUENT_FLINK_DATABASE
 )
 
 missing=0
@@ -109,14 +116,10 @@ CLI_ARGS=(
   --sql "${SQL}"
   --compute-pool "${CONFLUENT_FLINK_COMPUTE_POOL_ID}"
   --environment "${CONFLUENT_FLINK_ENVIRONMENT_ID}"
-  --database "${DATABASE}"
+  --database "${CONFLUENT_FLINK_DATABASE}"
   --output json
   --wait
 )
-
-if [[ -n "${CONFLUENT_FLINK_CATALOG:-}" ]]; then
-  CLI_ARGS+=(--catalog "${CONFLUENT_FLINK_CATALOG}")
-fi
 
 # --- Execute ---
 

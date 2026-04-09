@@ -5,9 +5,18 @@ Shell scripts for managing Flink UDF artifacts and functions on Confluent Cloud 
 > ⚠️These scripts are provided as examples. They are not production-ready and may contain bugs. 
 > Do not use them in a production environment. 
 
+Scripts:
+* `upload-artifact.sh`: Upload an artifact
+* `delete-artifact.sh`: Delete an artifact (not reversible!)
+* `register-function.sh`: Register a function (execute `CREATE FUNCTION ...`)
+* `drop-function.sh`: Un-register a function (execute `DROP FUNCTION ...`)
+
 ## Prerequisites
 
 The **Confluent CLI** is the only prerequisite. No other tools are required.
+
+
+## Authentication
 
 Before running any script, you must authenticate:
 
@@ -16,42 +25,24 @@ confluent login
 ```
 
 If you are not logged in, scripts will fail with an error such as:
-
-```
-Error: you must log in to Confluent Cloud with a username and password to use this command
-```
+*"Error: you must log in to Confluent Cloud with a username and password to use this command"*.
 
 See the [Confluent CLI authentication documentation](https://docs.confluent.io/confluent-cli/current/command-reference/confluent_login.html) for details, including SSO and API key login options.
 
 ---
 
-## Environment Variables
+## Parameters
 
-Scripts read connection parameters from environment variables. Set them before running any script.
+Each parameter can be passed directly as a flag or set via an environment variable. The flag takes precedence when both are provided.
 
-### Required by all scripts
-
-| Variable | Description |
-|---|---|
-| `CONFLUENT_FLINK_ENVIRONMENT_ID` | Confluent Cloud environment ID (e.g. `env-abc123`) |
-| `CONFLUENT_FLINK_CLOUD_PROVIDER` | Cloud provider (e.g. `aws`) |
-| `CONFLUENT_FLINK_CLOUD_REGION` | Cloud region (e.g. `eu-west-1`) |
-
-### Additionally Required by `register-function.sh` and `drop-function.sh`
-
-| Variable | Description |
-|---|---|
-| `CONFLUENT_FLINK_COMPUTE_POOL_ID` | Flink compute pool ID (e.g. `lfcp-abc123`) |
-
-### Optional
-
-| Variable | Description |
-|---|---|
-| `CONFLUENT_FLINK_CATALOG` | Flink catalog name, passed to `flink statement create` when set |
-
-### Overriding environment variables per invocation
-
-`CONFLUENT_FLINK_ENVIRONMENT_ID`, `CONFLUENT_FLINK_CLOUD_PROVIDER`, and `CONFLUENT_FLINK_CLOUD_REGION` can be overridden for a single invocation using the `--environment-id`, `--cloud`, and `--region` flags (see each script below). The environment variable is used as the default when the flag is omitted.
+| Flag | Env variable                      | Used by | Description |
+| --- |-----------------------------------| --- | --- |
+| `--environment-id` | `CONFLUENT_FLINK_ENVIRONMENT_ID`  | all scripts | Confluent Cloud environment ID (e.g. `env-abc123`) |
+| `--cloud` | `CONFLUENT_FLINK_CLOUD_PROVIDER`  | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Cloud provider (e.g. `aws`) |
+| `--region` | `CONFLUENT_FLINK_CLOUD_REGION`    | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Cloud region (e.g. `eu-west-1`) |
+| `--compute-pool-id` | `CONFLUENT_FLINK_COMPUTE_POOL_ID` | `register-function.sh`, `drop-function.sh` | Flink compute pool ID (e.g. `lfcp-abc123`) |
+| `--database` | `CONFLUENT_FLINK_DATABASE`        | `register-function.sh`, `drop-function.sh` | Kafka cluster used as the default database (e.g. `lkc-abc123`) |
+| `--catalog` | `CONFLUENT_FLINK_CATALOG`         | `register-function.sh`, `drop-function.sh` | Flink catalog name |
 
 ---
 
@@ -113,8 +104,8 @@ delete-artifact.sh --artifact-name udf-examples-1.0
 register-function.sh --function <function-name> \
                      --class <fully-qualified-class-name> \
                      --artifact-id <artifact-id> \
-                     --database <database> \
                      [--environment-id <id>] [--cloud <provider>] [--region <region>] \
+                     [--compute-pool-id <id>] [--database <database>] [--catalog <catalog>] \
                      [--quiet]
 ```
 
@@ -126,8 +117,10 @@ Fails if:
 - the database does not exist
 - a function with the same name already exists
 
-On success, prints `COMPLETED` (or, with `--quiet`, the function name).
-
+On success, prints `COMPLETED`
+  
+  ;;
+esac
 **Example:**
 ```shell
 register-function.sh \
@@ -143,8 +136,8 @@ register-function.sh \
 
 ```shell
 drop-function.sh --function <function-name> \
-                 --database <database> \
-                 [--environment-id <id>] \
+                 [--environment-id <id>] [--compute-pool-id <id>] \
+                 [--database <database>] [--catalog <catalog>] \
                  [--quiet]
 ```
 
@@ -164,11 +157,14 @@ drop-function.sh --function concat_with_separator --database cluster_0
 ## Common Options
 
 | Flag | Applies to | Description |
-|---|---|---|
+| --- | --- | --- |
 | `--quiet` | all scripts | Suppresses informational messages; on success prints only the key result (artifact ID or function name). Errors are always printed to stderr. |
 | `--environment-id <id>` | all scripts | Overrides `CONFLUENT_FLINK_ENVIRONMENT_ID` for this invocation |
 | `--cloud <provider>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Overrides `CONFLUENT_FLINK_CLOUD_PROVIDER` |
 | `--region <region>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Overrides `CONFLUENT_FLINK_CLOUD_REGION` |
+| `--compute-pool-id <id>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_COMPUTE_POOL_ID` |
+| `--database <database>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_DATABASE` |
+| `--catalog <catalog>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_CATALOG` |
 
 ---
 
