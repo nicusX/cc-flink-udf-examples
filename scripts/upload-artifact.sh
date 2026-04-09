@@ -3,11 +3,12 @@
 #
 # Usage:
 #   upload-artifact.sh --path <path-to-jar> [--description "<description>"] [--quiet]
+#                      [--environment-id <id>] [--cloud <provider>] [--region <region>]
 #
-# Required env vars (set by .secrets/credentials.sh):
-#   CONFLUENT_FLINK_ENVIRONMENT_ID
-#   CONFLUENT_FLINK_CLOUD_PROVIDER
-#   CONFLUENT_FLINK_CLOUD_REGION
+# Required env vars (set by .secrets/credentials.sh), overridable via parameters:
+#   CONFLUENT_FLINK_ENVIRONMENT_ID  (--environment-id)
+#   CONFLUENT_FLINK_CLOUD_PROVIDER  (--cloud)
+#   CONFLUENT_FLINK_CLOUD_REGION    (--region)
 
 set -euo pipefail
 
@@ -19,14 +20,20 @@ error() { echo "$@" >&2; }
 ARTIFACT_FILE=""
 ARTIFACT_DESCRIPTION=""
 QUIET=false
+OPT_ENVIRONMENT_ID=""
+OPT_CLOUD=""
+OPT_REGION=""
 
-usage="Usage: $0 --path <path-to-jar> [--description \"<description>\"] [--quiet]"
+usage="Usage: $0 --path <path-to-jar> [--description \"<description>\"] [--quiet] [--environment-id <id>] [--cloud <provider>] [--region <region>]"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --path)        ARTIFACT_FILE="$2";        shift 2 ;;
-    --description) ARTIFACT_DESCRIPTION="$2"; shift 2 ;;
-    --quiet)       QUIET=true;                shift   ;;
+    --path)           ARTIFACT_FILE="$2";        shift 2 ;;
+    --description)    ARTIFACT_DESCRIPTION="$2"; shift 2 ;;
+    --quiet)          QUIET=true;                shift   ;;
+    --environment-id) OPT_ENVIRONMENT_ID="$2";   shift 2 ;;
+    --cloud)          OPT_CLOUD="$2";            shift 2 ;;
+    --region)         OPT_REGION="$2";           shift 2 ;;
     *) error "Unknown parameter: $1"
        error "${usage}"
        exit 1 ;;
@@ -43,6 +50,12 @@ if [[ ! -f "${ARTIFACT_FILE}" ]]; then
   error "Error: file not found: ${ARTIFACT_FILE}"
   exit 1
 fi
+
+# --- Parameter resolution (CLI params override env vars) ---
+
+[[ -n "${OPT_ENVIRONMENT_ID}" ]] && CONFLUENT_FLINK_ENVIRONMENT_ID="${OPT_ENVIRONMENT_ID}"
+[[ -n "${OPT_CLOUD}" ]]          && CONFLUENT_FLINK_CLOUD_PROVIDER="${OPT_CLOUD}"
+[[ -n "${OPT_REGION}" ]]         && CONFLUENT_FLINK_CLOUD_REGION="${OPT_REGION}"
 
 # --- Environment variable validation ---
 
@@ -87,7 +100,7 @@ output=$(confluent flink artifact create "${ARTIFACT_NAME}" \
   --environment "${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
   --cloud "${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
   --region "${CONFLUENT_FLINK_CLOUD_REGION}" \
-  "${extra_args[@]}" \
+  "${extra_args[@]+${extra_args[@]}}" \
   --output json)
 
 artifact_id=$(echo "${output}" | grep -o '"id": *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
