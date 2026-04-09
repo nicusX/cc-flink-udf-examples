@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# register-function.sh — Register a Java UDF in Confluent Cloud Flink
+#
+# Usage:
+#   register-function.sh --function <function-name> --class <class-name> --artifact-id <artifact-id> --database <database> [--quiet]
+#
+# Required env vars (set by .secrets/credentials.sh):
+#   CONFLUENT_FLINK_ENVIRONMENT_ID
+#   CONFLUENT_FLINK_COMPUTE_POOL_ID
+#   CONFLUENT_FLINK_CLOUD_PROVIDER
+#   CONFLUENT_FLINK_CLOUD_REGION
+#
+# Optional env vars:
+#   CONFLUENT_FLINK_CATALOG  — passed to flink statement create if set
+
+set -euo pipefail
+
+log()   { [[ "${QUIET:-false}" == true ]] || echo "$@"; }
+error() { echo "$@" >&2; }
+
+# --- Argument parsing ---
+
+FUNCTION_NAME=""
+CLASS_NAME=""
+ARTIFACT_ID=""
+DATABASE=""
+QUIET=false
+
+usage="Usage: $0 --function <function-name> --class <class-name> --artifact-id <artifact-id> --database <database> [--quiet]"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --function)    FUNCTION_NAME="$2"; shift 2 ;;
+    --class)       CLASS_NAME="$2";    shift 2 ;;
+    --artifact-id) ARTIFACT_ID="$2";   shift 2 ;;
+    --database)    DATABASE="$2";      shift 2 ;;
+    --quiet)       QUIET=true;         shift   ;;
+    *) error "Unknown parameter: $1"
+       error "${usage}"
+       exit 1 ;;
+  esac
+done
+
+missing_args=0
+for param in FUNCTION_NAME CLASS_NAME ARTIFACT_ID DATABASE; do
+  if [[ -z "${!param}" ]]; then
+    error "Error: --${param,,} is required."
+    missing_args=1
+  fi
+done
+if [[ $missing_args -ne 0 ]]; then
+  error "${usage}"
+  exit 1
+fi
+
+# --- Environment variable validation ---
+
+REQUIRED_VARS=(
+  CONFLUENT_FLINK_ENVIRONMENT_ID
+  CONFLUENT_FLINK_COMPUTE_POOL_ID
+  CONFLUENT_FLINK_CLOUD_PROVIDER
+  CONFLUENT_FLINK_CLOUD_REGION
+)
+
+missing=0
+for var in "${REQUIRED_VARS[@]}"; do
+  if [[ -z "${!var:-}" ]]; then
+    error "Error: required environment variable $var is not set."
+    missing=1
+  fi
+done
+[[ $missing -eq 0 ]] || exit 1
+
+# --- Check artifact exists ---
+
+log "Checking artifact '${ARTIFACT_ID}' in ${CONFLUENT_FLINK_CLOUD_PROVIDER}/${CONFLUENT_FLINK_CLOUD_REGION} ..."
+if ! confluent flink artifact describe "${ARTIFACT_ID}" \
+    --environment "${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
+    --cloud "${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
+    --region "${CONFLUENT_FLINK_CLOUD_REGION}" \
+    > /dev/null 2>&1; then
+  error "Error: artifact '${ARTIFACT_ID}' not found in ${CONFLUENT_FLINK_CLOUD_PROVIDER}/${CONFLUENT_FLINK_CLOUD_REGION}."
+  exit 1
+fi
+
+# --- Build SQL statement ---
+
+SQL="CREATE FUNCTION \`${FUNCTION_NAME}\`"
+SQL+=" AS '${CLASS_NAME}'"
+SQL+=" USING JAR 'confluent-artifact://${ARTIFACT_ID}';"
+
+# --- Build CLI flags ---
+
+CLI_ARGS=(
+  flink statement create
+  --sql "${SQL}"
+  --compute-pool "${CONFLUENT_FLINK_COMPUTE_POOL_ID}"
+  --environment "${CONFLUENT_FLINK_ENVIRONMENT_ID}"
+  --database "${DATABASE}"
+  --output json
+  --wait
+)
+
+if [[ -n "${CONFLUENT_FLINK_CATALOG:-}" ]]; then
+  CLI_ARGS+=(--catalog "${CONFLUENT_FLINK_CATALOG}")
+fi
+
+# --- Execute ---
+
+log "Registering function '${FUNCTION_NAME}' (${CLASS_NAME}) using artifact ${ARTIFACT_ID} ..."
+if [[ "${QUIET}" == true ]]; then
+  output=$(confluent "${CLI_ARGS[@]}" 2>/dev/null)
+else
+  output=$(confluent "${CLI_ARGS[@]}")
+fi
+
+status=$(echo "${output}" | grep -o '"status": *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+
+if [[ "${status}" != "COMPLETED" ]]; then
+  status_detail=$(echo "${output}" | grep -o '"status_detail": *"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+  error "${status}: ${status_detail}"
+  exit 1
+fi
+
+echo "${status}"
