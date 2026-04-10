@@ -2,8 +2,8 @@
 
 This repository contains examples of User Defined Functions for Confluent Cloud Flink in Java.
 
-The example also illustrate a realistic deployment workflow for a Flink SQL statement using a user defined function.
-Details are in the [User Defined Functions Deployment Lifecycle](./docs/lifecycle.md) page.
+The examples also illustrate a realistic deployment workflow for a Flink SQL statement using a user defined function.
+Details are in the [User Defined Functions Deployment Lifecycle](./lifecycle.md) page.
 
 ## Java User Defined Function examples
 
@@ -42,7 +42,7 @@ Details are in the [User Defined Functions Deployment Lifecycle](./docs/lifecycl
 
 This repository provides a [POM file](pom.xml) with all required dependencies and configurations to build these examples.
 
-For an explanation about handling dependencies in your UDF projects, see [Java dependencies in UDFs](docs/java_dependencies.md).
+For an explanation about handling dependencies in your UDF projects, see [Java dependencies in UDFs](./java-dependencies.md).
 
 ### Packaging the artifact
 

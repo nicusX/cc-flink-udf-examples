@@ -3,7 +3,7 @@
 Shell scripts for managing Flink UDF artifacts and functions on Confluent Cloud using the Confluent CLI.
 
 > ⚠️These scripts are provided as examples. They are not production-ready and may contain bugs. 
-> Do not use them as-os in a production environment. 
+> Do not use them as-is in a production environment. 
 
 Scripts:
 * [`upload-artifact.sh`](#upload-artifactsh--upload-a-jar-artifact): Upload an artifact
@@ -126,10 +126,8 @@ Fails if:
 - the database does not exist
 - a function with the same name already exists
 
-On success, prints `COMPLETED`
-  
-  ;;
-esac
+On success, prints `COMPLETED`.
+
 **Example:**
 ```shell
 register-function.sh \

@@ -4,7 +4,7 @@ In this document we examine the deployment lifecycle of a user defined function 
 
 > Note: the lifecycle is identical for scalar UDF, UDTF, and PTF.
 
-The lifecycle uses shell [scripts](../scripts) and a simple [Terraform module](../terraform) provided as demonstration.
+The lifecycle uses shell [scripts](./scripts) and a simple [Terraform module](./terraform) provided as demonstration.
 Check out the detailed documentation in the subfolders.
 
 
@@ -24,24 +24,24 @@ Check out the detailed documentation in the subfolders.
 Top level Confluent Cloud resources:
 * Environment
 * A Kafka Cluster, in the Environment
-* Flink Compute Pool, the same Environment
+* Flink Compute Pool, in the same Environment
 
 The creation of these resources is out of scope for this document.
 
 > ⚠️Kafka Cluster and Flink Compute Pool must be in the same Cloud and Region
 
 Service Accounts and API keys:
-* Service Account and API Key with Cloud Resource Management scope (see [Terraform - *Platform Manager* Service Account & API Key](../terraform/README.md#platform-manager-service-account--api-key))
-* Service Account and API Key with Flink region scope (see [Terraform - *App Manager* Service Account & API Key](../terraform/README.md#app-manager-service-account--api-key))
+* Service Account and API Key with Cloud Resource Management scope (see [Terraform - *Platform Manager* Service Account & API Key](./terraform/README.md#platform-manager-service-account--api-key))
+* Service Account and API Key with Flink region scope (see [Terraform - *App Manager* Service Account & API Key](./terraform/README.md#app-manager-service-account--api-key))
 
 
 > ℹ️ In a real scenario, Environment, Compute Pool, Kafka Cluster, Service Accounts, and API keys are probably created
-> at top level by team managing the platform, and provided to the team responsible for the Flink statements and UDF.
+> at top level by the team managing the platform, and provided to the team responsible for the Flink statements and UDFs.
 > For these examples, scripts to create the Service Accounts and API Keys are provided.
-> Environment, Compute Pool, and Kafka cluster are supposed to be already in place. They can be easily created via Confluent Cloud UI.
+> Environment, Compute Pool, and Kafka cluster are assumed to be already in place. They can be easily created via Confluent Cloud UI.
 
 > ⚠️Note that the authentication used by Confluent CLI, used by the scripts, and by Terraform use different mechanisms.
-> The scripts requires a valid authenticated session with the CLI, via email/password or SSO.
+> The scripts require a valid authenticated session with the CLI, via email/password or SSO.
 > Conversely, Terraform uses API keys.
 
 
@@ -66,13 +66,13 @@ Service Accounts and API keys:
 
 #### Rollback to v1
 
-1. Un-register functions(s) - script (`drop-function.sh`)
+1. Un-register function(s) - script (`drop-function.sh`)
 2. Register function(s) using artifact v1 - script (`register-function.sh`)
 3. Stop/restart SQL statement - Terraform
 
 #### UDF update - signature change
 
-Identical to no-signature change, but requiring changes in the SQL statements it requires creating a new statement and 
+Identical to no-signature change, but since it requires changes in the SQL statements, it requires creating a new statement and 
 using carry-over offsets to continue consuming from sources.
 
 ---
@@ -80,7 +80,7 @@ using carry-over offsets to continue consuming from sources.
 ## Step-by-step Lifecycle Example
 
 To simplify the number of parameters passed to the scripts and to Terraform, we assume you have set the following parameters via environment
-variables (all the scripts in this repository accept parameters via env variables; we pass then to Terraform via command line
+variables (all the scripts in this repository accept parameters via env variables; we pass them to Terraform via command line
 getting the values from the environment):
 
 | Env variable | Used by | Description |
@@ -100,7 +100,7 @@ getting the values from the environment):
 
 ### Terraform INIT
 
-The following steps assume you have already initialized Terraform with `terraform init`
+The following steps assume you have already initialized Terraform with `terraform init`.
 
 ### First deployment
 
@@ -169,8 +169,8 @@ We do not really change the code, but we edit the `pom.xml` bumping the version 
    scripts/drop-function.sh --function concat_with_separator
    ```
    * Note that the running statement keeps running with the old function.
-     If you query `extended_products` you can see data being processed. And  you can see the statement running from the Console, in the Compute Pool.
-     But if you try to describe the function (`DESCRIBE FUNCTION concat_with_separator`) you can see that it gone.
+     If you query `extended_products` you can see data being processed. And you can see the statement running from the Console, in the Compute Pool.
+     But if you try to describe the function (`DESCRIBE FUNCTION concat_with_separator`) you can see that it is gone.
 4. Register the function using the new artifact, just uploaded
    ```shell
    scripts/register-function.sh \
@@ -198,7 +198,7 @@ We do not really change the code, but we edit the `pom.xml` bumping the version 
       ```shell
       terraform -chdir=terraform apply plan.tfplan
       ```
-   * In the Console, Compute  Pool, you can see the statement is now "Stopped"
+   * In the Console, Compute Pool, you can see the statement is now "Stopped"
 6. Restart the SQL statement
    1. Plan (no additional parameter)
       ```shell
@@ -218,7 +218,7 @@ We do not really change the code, but we edit the `pom.xml` bumping the version 
       ```shell
       terraform -chdir=terraform apply plan.tfplan
       ```
-   * In the Console, Compute  Pool, you can see the statement is now "Running"
+   * In the Console, Compute Pool, you can see the statement is now "Running"
 7. (Run smoke tests) - For the sake of this example, you can see whether `SELECT $rowtime, * FROM extended_products` keeps emitting records
 8. (Optionally) delete the old artifact
    ```shell

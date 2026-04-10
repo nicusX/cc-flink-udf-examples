@@ -3,8 +3,8 @@
 Simple Terraform module to deploy the Flink SQL statements using one of the UDF examples 
 (`concat_with_separator` - it can be easily modified to test other UDF in this repo).
 
-> ⚠️These Terraform module is provided as example. This is not production-ready and may contain bugs.
-> Do not use it as-os in a production environment.
+> ⚠️This Terraform module is provided as an example. It is not production-ready and may contain bugs.
+> Do not use it as-is in a production environment.
 
 
 
@@ -26,9 +26,9 @@ The Terraform module assumes that the `concat_with_separator` UDF has been previ
     2. An *App Manager* Service Account and API Key - Credentials used by Terraform to manage Flink resources
 
 > ℹ️ In a real scenario, Environment, Compute Pool, Kafka Cluster, Service Accounts, and API keys are probably created
-> at top level by team managing the platform, and provided to the team responsible for the Flink statements and UDF. 
+> at top level by the team managing the platform, and provided to the team responsible for the Flink statements and UDFs. 
 > For these examples, scripts to create the Service Accounts and API Keys are provided. 
-> Environment, Compute Pool, and Kafka cluster are supposed to be already in place. They can be easily created via Confluent Cloud UI.
+> Environment, Compute Pool, and Kafka cluster are assumed to be already in place. They can be easily created via Confluent Cloud UI.
 
 ### *Platform Manager* Service Account & API Key
 
@@ -38,7 +38,7 @@ The *Platform Manager* must have at minimum the following roles:
 
 | Role | Scope | Resource | Notes |
 |---|---|---|---|
-| FlinkAdmin | Environmnent | - | Allow managing resources in the Flink environment |
+| FlinkAdmin | Environment | — | Allow managing resources in the Flink environment |
 | ResourceOwner | Cluster | Topic `*` (prefixed) | Read/write access to all Kafka topics |
 
 
@@ -53,10 +53,7 @@ to create the Service Account and API Key.
 
 ### *App Manager* Service Account & API Key
 
-The service account used to create and run Flink statements. M<ust have the following roles:
-
-
-(`app_manager_service_account_id`) must have the following roles:
+The service account used to create and run Flink statements (`app_manager_service_account_id`) must have the following roles:
 
 | Role | Scope | Resource | Notes |
 |---|---|---|---|
@@ -78,7 +75,7 @@ These Flink API Key and Secret must also be passed to Terraform
 
 
 You can use the script [create-app-manager.sh](../scripts/README.md#create-app-manager-sash---create-app-manager-service-account--api-keys) 
-to create the Service Account an API key.
+to create the Service Account and API key.
 
 ## Running Terraform
 
