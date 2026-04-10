@@ -58,9 +58,9 @@ Service Accounts and API keys:
 1. Build version v2
 2. Upload artifact v2 - script (`upload-artifact.sh`)
 3. Un-register function(s) - script (`drop-function.sh`)
-4. Register function(s) using artifact v2 - script (`register-function.sh`)
+4. Register function(s) using artifact v2 (the running statement is still using the old version of the function) - script (`register-function.sh`)
 5. Stop the SQL statement - Terraform
-6. Restart the SQL statement - Terraform
+6. Restart the SQL statement (will use the new version of the function) - Terraform
 7. (test)
 8. (optional) Delete artifact v1 - script (`delete-artifact.sh`)
 
@@ -68,12 +68,17 @@ Service Accounts and API keys:
 
 1. Un-register function(s) - script (`drop-function.sh`)
 2. Register function(s) using artifact v1 - script (`register-function.sh`)
-3. Stop/restart SQL statement - Terraform
+3. Stop the SQL statement - Terraform
+4. Restart the SQL statement - Terraform
+5. (optional) Delete artifact v2 (the one not working correctly) - script (`delete-artifact.sh`)
+
 
 #### UDF update - signature change
 
 Identical to no-signature change, but since it requires changes in the SQL statements, it requires creating a new statement and 
 using carry-over offsets to continue consuming from sources.
+
+TODO
 
 ---
 
@@ -214,15 +219,41 @@ We do not really change the code, but we edit the `pom.xml` bumping the version 
         -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
         -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
       ```
-   2. Apply
+   2. Apply - restart the statement, using the new function version
       ```shell
       terraform -chdir=terraform apply plan.tfplan
       ```
    * In the Console, Compute Pool, you can see the statement is now "Running"
-7. (Run smoke tests) - For the sake of this example, you can see whether `SELECT $rowtime, * FROM extended_products` keeps emitting records
+7. (Run tests) - For the sake of this example, you can see whether `SELECT $rowtime, * FROM extended_products` keeps emitting records
 8. (Optionally) delete the old artifact
    ```shell
    scripts/delete-artifact.sh --artifact-name udf-examples-1.0
+   ```
+
+
+### Rollback to a previous UDF version
+
+Assuming your tests after deploying the new UDF version, and you haven't yet deleted the old artifact, you can rollback to the
+previous version of the function.
+
+
+1. Un-register function
+   ```shell
+   scripts/drop-function.sh --function concat_with_separator
+   ```
+2. Register function using the previous artifact version
+   * In a real automation scenario the old artifact-id must be saved somewhere and passed to the script.
+     For the sake of this example, we can run `scripts/list-artifacts.sh` to show all artifact uploaded in the specific Environment and check the ID
+   ```shell
+   scripts/register-function.sh \
+     --function concat_with_separator \
+     --class io.confluent.flink.examples.udf.scalar.ConcatWithSeparator \
+     --artifact-id "<previous-artifact-id>"
+   ```   
+3. Stop & Restart the SQL statement - Use Terraform, same as in the previous case
+4. (optional) Delete the artifact 1.1, which wasn't working properly
+   ```shell
+   scripts/delete-artifact.sh --artifact-name udf-examples-1.1
    ```
 
 

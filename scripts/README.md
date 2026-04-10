@@ -8,6 +8,7 @@ Shell scripts for managing Flink UDF artifacts and functions on Confluent Cloud 
 Scripts:
 * [`upload-artifact.sh`](#upload-artifactsh--upload-a-jar-artifact): Upload an artifact
 * [`delete-artifact.sh`](#delete-artifactsh--delete-an-artifact): Delete an artifact (not reversible!)
+* [`list-artifacts.sh`](#list-artifactssh--list-artifacts): List all artifacts in the environment
 * [`register-function.sh`](#register-functionsh--register-a-flink-udf): Register a function (execute `CREATE FUNCTION ...`)
 * [`drop-function.sh`](#drop-functionsh--drop-a-flink-udf): Un-register a function (execute `DROP FUNCTION ...`)
 
@@ -107,6 +108,21 @@ delete-artifact.sh --artifact-name udf-examples-1.0
 
 ---
 
+### `list-artifacts.sh` — List artifacts
+
+```shell
+list-artifacts.sh [--environment-id <id>] [--cloud <provider>] [--region <region>]
+```
+
+Lists all Flink artifacts in the specified environment and cloud region.
+
+**Example:**
+```shell
+list-artifacts.sh
+```
+
+---
+
 ### `register-function.sh` — Register a Flink UDF
 
 ```shell
@@ -173,42 +189,9 @@ drop-function.sh --function concat_with_separator --database cluster_0
 | `--database <database>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_DATABASE` |
 | `--catalog <catalog>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_CATALOG` |
 
+
+
 ---
-
-## Example Workflow
-
-Let's see how you can upload the artifact from this project and register one of the UDFs. 
-
-```shell
-# 1. Log in
-confluent login
-
-# 2. Set environment variables
-export CONFLUENT_FLINK_ENVIRONMENT_ID=env-abc123
-export CONFLUENT_FLINK_CLOUD_PROVIDER=aws
-export CONFLUENT_FLINK_CLOUD_REGION=eu-west-1
-export CONFLUENT_FLINK_COMPUTE_POOL_ID=lfcp-abc123
-
-# 3. Build the artifact
-mvn package
-
-# 4. Upload the artifact and capture its ID
-ARTIFACT_ID=$(scripts/upload-artifact.sh --path target/udf-examples-1.0.jar --quiet)
-
-# 5. Register a function from that artifact
-scripts/register-function.sh \
-  --function concat_with_separator \
-  --class io.confluent.flink.examples.udf.scalar.ConcatWithSeparator \
-  --artifact-id "${ARTIFACT_ID}" \
-  --database my_cluster
-
-# 6. Drop the function when no longer needed
-scripts/drop-function.sh --function concat_with_separator --database my_cluster
-
-# 7. Delete the artifact
-scripts/delete-artifact.sh --artifact-id "${ARTIFACT_ID}"
-```
-
 ---
 
 ## Additional Scripts
