@@ -21,7 +21,7 @@ Check out the detailed documentation in the subfolders.
 
 #### Confluent Cloud Prerequisites
 
-Top level Confluent Cloud resources:
+##### Confluent Cloud resources
 * Environment
 * A Kafka Cluster, in the Environment
 * Flink Compute Pool, in the same Environment
@@ -30,7 +30,8 @@ The creation of these resources is out of scope for this document.
 
 > ⚠️Kafka Cluster and Flink Compute Pool must be in the same Cloud and Region
 
-Service Accounts and API keys:
+##### Service Accounts and API keys
+
 * Service Account and API Key with Cloud Resource Management scope (see [Terraform - *Platform Manager* Service Account & API Key](./terraform/README.md#platform-manager-service-account--api-key))
 * Service Account and API Key with Flink region scope (see [Terraform - *App Manager* Service Account & API Key](./terraform/README.md#app-manager-service-account--api-key))
 
@@ -44,6 +45,7 @@ Service Accounts and API keys:
 > The scripts require a valid authenticated session with the CLI, via email/password or SSO.
 > Conversely, Terraform uses API keys.
 
+---
 
 ### First deployment
 
