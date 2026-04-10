@@ -1,0 +1,120 @@
+## Deploy the SQL statements to test the `concat_with_separator` UDF
+
+
+terraform {
+  required_providers {
+    confluent = {
+      source  = "confluentinc/confluent"
+      version = "2.62.0"
+    }
+  }
+}
+
+locals {
+  cloud  = upper(var.cloud_provider)
+  region = var.cloud_region
+}
+
+provider "confluent" {
+  cloud_api_key    = var.confluent_cloud_api_key
+  cloud_api_secret = var.confluent_cloud_api_secret
+}
+
+data "confluent_organization" "main" {}
+
+data "confluent_environment" "dev" {
+  id = var.environment_id
+}
+
+data "confluent_service_account" "app_manager" {
+  id = var.app_manager_service_account_id
+}
+
+
+data "confluent_flink_region" "main" {
+  cloud  = local.cloud
+  region = local.region
+}
+
+data "confluent_kafka_cluster" "main" {
+  # Note that the Flink Database == the Kafka Cluster
+  id = var.kafka_cluster_id
+  environment {
+    id = var.environment_id
+  }
+}
+
+data "confluent_flink_compute_pool" "main" {
+  id = var.compute_pool_id
+  environment {
+    id = data.confluent_environment.dev.id
+  }
+}
+
+### Deploy the SQL statements
+
+## Create the destination table
+resource "confluent_flink_statement" "create_extended_products" {
+  organization {
+    id = data.confluent_organization.main.id
+  }
+  environment {
+    id = data.confluent_environment.dev.id
+  }
+  compute_pool {
+    id = data.confluent_flink_compute_pool.main.id
+  }
+  rest_endpoint = data.confluent_flink_region.main.rest_endpoint
+
+  principal {
+    id = data.confluent_service_account.app_manager.id
+  }
+
+  credentials {
+    key    = var.flink_api_key
+    secret = var.flink_api_secret
+  }
+
+  properties = {
+    "sql.current-catalog"  = data.confluent_environment.dev.display_name
+    "sql.current-database" = data.confluent_kafka_cluster.main.display_name
+  }
+
+  statement = file("./sql/01_create_extended_products.sql")
+}
+
+## Insert into statement which uses the UDF
+resource "confluent_flink_statement" "insert_into_extended_products" {
+  organization {
+    id = data.confluent_organization.main.id
+  }
+  environment {
+    id = data.confluent_environment.dev.id
+  }
+  compute_pool {
+    id = data.confluent_flink_compute_pool.main.id
+  }
+  rest_endpoint = data.confluent_flink_region.main.rest_endpoint
+
+  principal {
+    id = data.confluent_service_account.app_manager.id
+  }
+
+  credentials {
+    key    = var.flink_api_key
+    secret = var.flink_api_secret
+  }
+
+  properties = {
+    "sql.current-catalog"  = data.confluent_environment.dev.display_name
+    "sql.current-database" = data.confluent_kafka_cluster.main.display_name
+  }
+
+  statement = file("./sql/02_insert_extended_products.sql")
+
+  # When `stopped` is set to `true` Terraform stops the statement without destroying it
+  # Note that the default, from variables.tf, is `false`, meaning "start it or keep it running"
+  stopped   = var.statement_stopped
+
+  depends_on = [confluent_flink_statement.create_extended_products]
+}

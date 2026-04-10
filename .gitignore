@@ -34,6 +34,15 @@ dependency-reduced-pom.xml
 ### Mac OS ###
 .DS_Store
 
+# Terraform state
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+crash.log
+crash.*.log
+
 ### Local environment ###
 .secrets/
 .env

@@ -1,8 +1,11 @@
 # Flink User Defined Function examples
 
-Examples of User Defined Functions for Confluent Cloud Flink.
+This repository contains examples of User Defined Functions for Confluent Cloud Flink in Java.
 
-## Examples
+The example also illustrate a realistic deployment workflow for a Flink SQL statement using a user defined function.
+Details are in the [User Defined Functions Deployment Lifecycle](./docs/lifecycle.md) page.
+
+## Java User Defined Function examples
 
 ### Scalar Functions (UDF)
 
