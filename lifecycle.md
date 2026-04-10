@@ -64,7 +64,7 @@ Service Accounts and API keys:
 7. (test)
 8. (optional) Delete artifact v1 - script (`delete-artifact.sh`)
 
-#### Rollback to v1
+### Rollback to v1
 
 1. Un-register function(s) - script (`drop-function.sh`)
 2. Register function(s) using artifact v1 - script (`register-function.sh`)
@@ -73,7 +73,7 @@ Service Accounts and API keys:
 5. (optional) Delete artifact v2 (the one not working correctly) - script (`delete-artifact.sh`)
 
 
-#### UDF update - signature change
+### UDF update - function signature change
 
 Identical to no-signature change, but since it requires changes in the SQL statements, it requires creating a new statement and 
 using carry-over offsets to continue consuming from sources.
@@ -256,6 +256,9 @@ previous version of the function.
    scripts/delete-artifact.sh --artifact-name udf-examples-1.1
    ```
 
+### UDF update - function signature change
+
+TBD
 
 
 --- 
