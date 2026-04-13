@@ -330,7 +330,7 @@ The following steps change:
       ```
 6. (Run tests) - For the sake of this example, you can see whether `SELECT $rowtime, * FROM extended_products` keeps emitting records
 7. Stop the statement v2 (statement v1 is already stopped)
-   1. Plan (note the additional parameter `-var="statement_stopped=true"` )
+   1. Terraform Plan (note the additional parameter `-var="statement_stopped=true"` )
       ```shell
       terraform -chdir=terraform plan -var="statement_stopped=true" -out=plan.tfplan \
         -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
@@ -344,7 +344,7 @@ The following steps change:
         -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
         -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
       ```
-   2. Apply
+   2. Terraform Apply
       ```shell
       terraform -chdir=terraform apply plan.tfplan
       ```
@@ -402,10 +402,6 @@ To eliminate all resources created by this example:
    DROP TABLE IF EXISTS `extended_products`;
    ```
 3. Drop function
-   ```shell
-   scripts/drop-function.sh --function <function-name> [--quiet]
-   ```
-   Example:
    ```shell
    scripts/drop-function.sh --function concat_with_separator
    ```
