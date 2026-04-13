@@ -147,7 +147,14 @@ on any new apply (unless the statement is modified).
 
 To selectively stop and restart the statement, as required when a new version of the UDF is deployed, we proceed in two steps:
 1. Terraform apply setting the variable `statement_stopped`=`true` (passing the parameter `-var="statement_stopped=true"`) - this stops the statement
+  ```bash
+  terraform apply -var="statement_stopped=true" ...
+  ```
 2. Another Terraform apply, without setting it - this restarts the statement
+  ```bash
+  terraform apply  ...
+  ```
+
 
 
 ## Destroying the resources
