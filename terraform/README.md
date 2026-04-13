@@ -8,10 +8,13 @@ Simple Terraform module to deploy the Flink SQL statements using one of the UDF 
 
 
 
-Deploys two Flink SQL statements to Confluent Cloud:
+Deploys the following Flink SQL statements to Confluent Cloud:
 
-1. `CREATE TABLE extended_products` — destination table with a primary key
-2. `INSERT INTO extended_products` — streaming insert using the `concat_with_separator` UDF
+1. `CREATE TABLE base_products` — source table, populated from the Confluent examples
+2. `INSERT INTO base_products` — copies data from the `examples.marketplace.products` faker table
+3. `CREATE TABLE extended_products` — destination table (append-only, no primary key)
+4. `INSERT INTO extended_products` (v1) — streaming insert using the `concat_with_separator` UDF
+5. `INSERT INTO extended_products` (v2, commented out) — alternative version for demonstrating carry-over offsets
 
 The Terraform module assumes that the `concat_with_separator` UDF has been previously registered.
 
@@ -145,6 +148,8 @@ the parameter `stopped` for that `confluent_flink_statement` resource.
 By default, this is set to `false`, meaning that Terraform will start the statement on first deployment and keep it running
 on any new apply (unless the statement is modified).
 
+### UDF update without SQL statement changes
+
 To selectively stop and restart the statement, as required when a new version of the UDF is deployed, we proceed in two steps:
 1. Terraform apply setting the variable `statement_stopped`=`true` (passing the parameter `-var="statement_stopped=true"`) - this stops the statement
   ```bash
@@ -154,6 +159,15 @@ To selectively stop and restart the statement, as required when a new version of
   ```bash
   terraform apply  ...
   ```
+
+### UDF update with SQL statement changes (carry-over offsets)
+
+When a UDF change requires modifying the SQL statement (e.g. a function signature change), the old statement must be
+replaced with a new one. The module includes a commented-out v2 resource that uses
+[carry-over offsets](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/carry-over-offsets.html)
+to resume processing from where the old statement stopped.
+
+See [lifecycle.md](../lifecycle.md#udf-update---change-to-the-sql-statement-required-1) for the detailed step-by-step process.
 
 
 

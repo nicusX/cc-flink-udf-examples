@@ -149,8 +149,8 @@ resource "confluent_flink_statement" "create_extended_products" {
 
 ## Deploy the statement that uses the UDF
 
-# Insert into extended_products from base_products
-resource "confluent_flink_statement" "insert_into_extended_products" {
+# Insert into extended_products from base_products (v1)
+resource "confluent_flink_statement" "insert_into_extended_products_v1" {
   organization {
     id = data.confluent_organization.main.id
   }
@@ -176,11 +176,58 @@ resource "confluent_flink_statement" "insert_into_extended_products" {
     "sql.current-database" = data.confluent_kafka_cluster.main.display_name
   }
 
-  statement = file("./sql/04_insert_extended_products.sql")
+  statement = file("./sql/04a_insert_extended_products_v1.sql")
 
   # When `stopped` is set to `true` Terraform stops the statement without destroying it
   # Note that the default, from variables.tf, is `false`, meaning "start it or keep it running"
   stopped   = var.statement_stopped
+  ## COMMENT THE LINE ABOVE AND UNCOMMENT THE LINE BELOW TO DEMONSTRATE UPDATING THE UDF WITH FUNCTION SIGNATURE CHANGES
+  # stopped = true
 
   depends_on = [confluent_flink_statement.create_extended_products, confluent_flink_statement.create_base_products]
 }
+
+
+## UNCOMMENT THE BLOCK BELOW TO DEMONSTRATE UPDATING THE UDF WITH FUNCTION SIGNATURE CHANGES.
+## ALSO CHANGE THE stopped ATTRIBUTE IN insert_into_extended_products_v1
+##
+## When the UDF change requires modifying the SQL statement, the old statement must be replaced with a new one.
+## We use carry-over offsets to restart processing form the point where the old statement was stopped. To do this we
+## cannot modify the terraform resource in-place, but we need to create a new statement to pass the previous statement
+## name as starting position.
+#
+# resource "confluent_flink_statement" "insert_into_extended_products_v2" {
+#   organization {
+#     id = data.confluent_organization.main.id
+#   }
+#   environment {
+#     id = data.confluent_environment.dev.id
+#   }
+#   compute_pool {
+#     id = data.confluent_flink_compute_pool.main.id
+#   }
+#   rest_endpoint = data.confluent_flink_region.main.rest_endpoint
+#
+#   principal {
+#     id = data.confluent_service_account.app_manager.id
+#   }
+#
+#   credentials {
+#     key    = var.flink_api_key
+#     secret = var.flink_api_secret
+#   }
+#
+#   properties = {
+#     "sql.current-catalog"            = data.confluent_environment.dev.display_name
+#     "sql.current-database"           = data.confluent_kafka_cluster.main.display_name
+#     # The following property is used to enable carry-over offsets.
+#     # After the statement has been restarted once with carry-over, the property should be removed
+#     "sql.tables.initial-offset-from" = confluent_flink_statement.insert_into_extended_products_v1.statement_name
+#   }
+#
+#   statement = file("./sql/04b_insert_extended_products_v2.sql")
+#
+#   stopped   = var.statement_stopped
+#
+#   depends_on = [confluent_flink_statement.create_extended_products, confluent_flink_statement.create_base_products]
+# }

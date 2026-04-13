@@ -5,6 +5,5 @@ CREATE TABLE `extended_products` (
   `extended_name`   STRING
 ) WITH (
     -- These options are just to simplify testing. They are not related to the UDF lifecycle
-    'scan.startup.mode' = 'latest-offset',
     'kafka.consumer.isolation-level'='read-uncommitted'
 );

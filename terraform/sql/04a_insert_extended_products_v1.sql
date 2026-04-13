@@ -1,5 +1,4 @@
 -- The actual statement using the UDF
--- (the statement related to the UDF lifecycle)
 INSERT INTO `extended_products`
 SELECT
   product_id,
