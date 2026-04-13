@@ -282,7 +282,12 @@ To eliminate all resources created by this example:
      -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
      -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
    ```
-2. Drop function
+2. Drop the tables (Terraform does not remove them). Run the following as two separate SQL statements
+   ```sql
+   DROP TABLE IF EXISTS `base_products`;
+   DROP TABLE IF EXISTS `extended_products`;
+   ```
+3. Drop function
    ```shell
    scripts/drop-function.sh --function <function-name> [--quiet]
    ```

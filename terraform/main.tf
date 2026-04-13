@@ -53,7 +53,71 @@ data "confluent_flink_compute_pool" "main" {
 
 ### Deploy the SQL statements
 
-## Create the destination table
+## Deploy a few statements required by the example
+
+# Create base_products table: the source table
+resource "confluent_flink_statement" "create_base_products" {
+  organization {
+    id = data.confluent_organization.main.id
+  }
+  environment {
+    id = data.confluent_environment.dev.id
+  }
+  compute_pool {
+    id = data.confluent_flink_compute_pool.main.id
+  }
+  rest_endpoint = data.confluent_flink_region.main.rest_endpoint
+
+  principal {
+    id = data.confluent_service_account.app_manager.id
+  }
+
+  credentials {
+    key    = var.flink_api_key
+    secret = var.flink_api_secret
+  }
+
+  properties = {
+    "sql.current-catalog"  = data.confluent_environment.dev.display_name
+    "sql.current-database" = data.confluent_kafka_cluster.main.display_name
+  }
+
+  statement = file("./sql/01_create_base_products.sql")
+}
+
+# Insert into the source table from the "faker" examples table
+resource "confluent_flink_statement" "insert_into_base_products" {
+  organization {
+    id = data.confluent_organization.main.id
+  }
+  environment {
+    id = data.confluent_environment.dev.id
+  }
+  compute_pool {
+    id = data.confluent_flink_compute_pool.main.id
+  }
+  rest_endpoint = data.confluent_flink_region.main.rest_endpoint
+
+  principal {
+    id = data.confluent_service_account.app_manager.id
+  }
+
+  credentials {
+    key    = var.flink_api_key
+    secret = var.flink_api_secret
+  }
+
+  properties = {
+    "sql.current-catalog"  = data.confluent_environment.dev.display_name
+    "sql.current-database" = data.confluent_kafka_cluster.main.display_name
+  }
+
+  statement = file("./sql/02_insert_into_base_products.sql")
+
+  depends_on = [confluent_flink_statement.create_base_products]
+}
+
+# Create the destination table
 resource "confluent_flink_statement" "create_extended_products" {
   organization {
     id = data.confluent_organization.main.id
@@ -80,10 +144,12 @@ resource "confluent_flink_statement" "create_extended_products" {
     "sql.current-database" = data.confluent_kafka_cluster.main.display_name
   }
 
-  statement = file("./sql/01_create_extended_products.sql")
+  statement = file("./sql/03_create_extended_products.sql")
 }
 
-## Insert into statement which uses the UDF
+## Deploy the statement that uses the UDF
+
+# Insert into extended_products from base_products
 resource "confluent_flink_statement" "insert_into_extended_products" {
   organization {
     id = data.confluent_organization.main.id
@@ -110,11 +176,11 @@ resource "confluent_flink_statement" "insert_into_extended_products" {
     "sql.current-database" = data.confluent_kafka_cluster.main.display_name
   }
 
-  statement = file("./sql/02_insert_extended_products.sql")
+  statement = file("./sql/04_insert_extended_products.sql")
 
   # When `stopped` is set to `true` Terraform stops the statement without destroying it
   # Note that the default, from variables.tf, is `false`, meaning "start it or keep it running"
   stopped   = var.statement_stopped
 
-  depends_on = [confluent_flink_statement.create_extended_products]
+  depends_on = [confluent_flink_statement.create_extended_products, confluent_flink_statement.create_base_products]
 }

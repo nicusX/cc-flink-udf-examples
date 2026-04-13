@@ -163,10 +163,13 @@ To selectively stop and restart the statement, as required when a new version of
 terraform destroy
 ```
 
-Note: destroying the Terraform resources removes the Flink *statements*, but the `extended_products` table persists in the Flink catalog. 
-To fully clean up, run the following before re-applying:
+Note: destroying the Terraform resources removes the Flink *statements* but does not remove the tables.
+
+To fully clean up, run the following statements before re-applying:
 
 ```sql
+DROP TABLE IF EXISTS `base_products`;
+
 DROP TABLE IF EXISTS `extended_products`;
 ```
 
