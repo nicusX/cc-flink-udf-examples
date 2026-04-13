@@ -66,12 +66,20 @@ The `order_events` table has the following fields:
 
 The state machine implements simple business logic: events are applied to each order, and the PTF maintains the full state.
 
+Some events change the *status* of on Order:
+* `CREATE` event : new Order, status `CREATED`
+* `PAY` event: update status to `PAID`
+* `SHIP` event: update status to `SHIPPED`
+
+(`ADD_ITEM` and `UPDATE_ADDRESS` events do not change the *status*)
+
 > ⚠️ The state of a PTF is related to a single *partition*, defined by `PARTITION BY` at the PTF invocation.
 > In this case the processing is partitioned by `orderId` and a single PTF state object represents the state of a single Order.
 
 ### Output
 
-The complete order is emitted only under specific conditions. In this example, when an event changes the order's *status*. In a real scenario, the business logic can be more complex.
+The complete order is emitted only under specific conditions. 
+In this example, when an event changes the order's *status*. In a real scenario, the business logic can be more complex.
 
 The PTF emits a single ROW representing the Order into an append-only table.
 
