@@ -1,11 +1,10 @@
 # Terraform — Deploy Flink SQL Statements Using a UDF
 
 Simple Terraform module to deploy the Flink SQL statements using one of the UDF examples 
-(`concat_with_separator` - it can be easily modified to test other UDF in this repo).
+(`concat_with_separator` - it can be easily modified to test other UDFs in this repo).
 
-> ⚠️This Terraform module is provided as an example. It is not production-ready and may contain bugs.
+> ⚠️ This Terraform module is provided as an example. It is not production-ready and may contain bugs.
 > Do not use it as-is in a production environment.
-
 
 
 Deploys the following Flink SQL statements to Confluent Cloud:
@@ -45,7 +44,7 @@ The *Platform Manager* must have at minimum the following roles:
 | ResourceOwner | Cluster | Topic `*` (prefixed) | Read/write access to all Kafka topics |
 
 
-Create an API Key with *Cloud Resource Management* scope associated to the *Platform Manager* Service Account.
+Create an API Key with *Cloud Resource Management* scope associated with the *Platform Manager* Service Account.
 
 These Confluent Cloud API Key and Secret must be passed to Terraform as main credential 
 (`confluent_cloud_api_key` and `confluent_cloud_api_secret` in the Terraform module).
@@ -65,7 +64,7 @@ The service account used to create and run Flink statements (`app_manager_servic
 | `ResourceOwner` | Kafka cluster | TransactionalId `_confluent-flink_*` (prefixed) | Required for Flink's internal transactional producers |
 | `DeveloperWrite` | Schema Registry cluster | Subject `*` (prefixed) | Allows registering schemas for new topics |
 
-Create an API Key with *Flink region* scope associated to the *App Manager* Service Account.
+Create an API Key with *Flink region* scope associated with the *App Manager* Service Account.
 
 The key must be associated with:
 * Environment
@@ -98,7 +97,7 @@ The Terraform module requires several parameters:
 | `kafka_cluster_id` | Kafka cluster ID used as the Flink default database (e.g. `lkc-xxxxxx`) |
 
 These parameters can be passed via command line on every invocation.
-Alternatively, you can create a named `.auto.tfvars` where you specify all parameters.
+Alternatively, you can create a named `.auto.tfvars` file where you specify all parameters.
 (you can also pass variables to Terraform via env variables named `TF_VAR_*`, not covered in this example).
 
 > ℹ️ Note that the API keys and secrets must be passed to Terraform explicitly.
@@ -157,7 +156,7 @@ To selectively stop and restart the statement, as required when a new version of
   ```
 2. Another Terraform apply, without setting it - this restarts the statement
   ```bash
-  terraform apply  ...
+  terraform apply ...
   ```
 
 ### UDF update with SQL statement changes (carry-over offsets)
@@ -167,7 +166,7 @@ replaced with a new one. The module includes a commented-out v2 resource that us
 [carry-over offsets](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/carry-over-offsets.html)
 to resume processing from where the old statement stopped.
 
-See [lifecycle.md](../lifecycle.md#udf-update---change-to-the-sql-statement-required-1) for the detailed step-by-step process.
+See [lifecycle.md](../lifecycle.md#scenario-4-udf-update---change-to-the-sql-statement-required-1) for the detailed step-by-step process.
 
 
 
@@ -182,17 +181,15 @@ Note: destroying the Terraform resources removes the Flink *statements* but does
 To fully clean up, run the following statements before re-applying:
 
 ```sql
-DROP TABLE IF EXISTS `base_products`;
+DROP TABLE `base_products`;
 
-DROP TABLE IF EXISTS `extended_products`;
+DROP TABLE `extended_products`;
 ```
 
-This can be executed in the Flink SQL shell:
+This can be executed in a SQL Workspace or using the [`drop-table.sh`](../scripts/README.md#drop-tablesh--drop-a-flink-table) script:
 
-```bash
-confluent flink shell \
-  --environment <environment-id> \
-  --compute-pool <compute-pool-id> \
-  --database <kafka-cluster-id>
+```shell
+scripts/drop-table.sh --table base_products
+scripts/drop-table.sh --table extended_products
 ```
 

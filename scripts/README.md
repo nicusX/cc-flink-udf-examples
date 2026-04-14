@@ -2,7 +2,7 @@
 
 Shell scripts for managing Flink UDF artifacts and functions on Confluent Cloud using the Confluent CLI.
 
-> ⚠️These scripts are provided as examples. They are not production-ready and may contain bugs. 
+> ⚠️ These scripts are provided as examples. They are not production-ready and may contain bugs. 
 > Do not use them as-is in a production environment. 
 
 Scripts:
@@ -15,6 +15,7 @@ Scripts:
 Additional scripts:
 * [`create-app-manager-sa.sh`](#create-app-manager-sash---create-app-manager-service-account--api-keys): Creates the Service Account to manage SQL statements
 * [`create-platform-manager-sa.sh`](#create-platform-manager-sash---create-platform-manager-service-account--api-keys): Creates the Service Account to administer Flink
+* [`drop-table.sh`](#drop-tablesh--drop-a-flink-table): Drop a table (execute `DROP TABLE IF EXISTS ...`)
 
 ## Prerequisites
 
@@ -29,13 +30,13 @@ Before running any script, you must authenticate:
 confluent login
 ```
 
-Log in uses email/password or SSO.
+Login uses email/password or SSO.
 For non-interactive login via email/password the credentials can be set in the `CONFLUENT_CLOUD_EMAIL` and `CONFLUENT_CLOUD_PASSWORD`
 environment variables.
 
 See the [Confluent CLI authentication documentation](https://docs.confluent.io/confluent-cli/current/command-reference/confluent_login.html) for details, including SSO and API key login options.
 
-> ⚠️If you are not logged in, scripts will fail with an error such as:
+> ⚠️ If you are not logged in, scripts will fail with an error such as:
 > *"Error: you must log in to Confluent Cloud with a username and password to use this command"*.
 
 
@@ -50,9 +51,9 @@ Each parameter can be passed directly as a flag or set via an environment variab
 | `--environment-id` | `CONFLUENT_FLINK_ENVIRONMENT_ID`  | all scripts | Confluent Cloud environment ID (e.g. `env-abc123`) |
 | `--cloud` | `CONFLUENT_FLINK_CLOUD_PROVIDER`  | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Cloud provider (e.g. `aws`) |
 | `--region` | `CONFLUENT_FLINK_CLOUD_REGION`    | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Cloud region (e.g. `eu-west-1`) |
-| `--compute-pool-id` | `CONFLUENT_FLINK_COMPUTE_POOL_ID` | `register-function.sh`, `drop-function.sh` | Flink compute pool ID (e.g. `lfcp-abc123`) |
-| `--database` | `CONFLUENT_FLINK_DATABASE`        | `register-function.sh`, `drop-function.sh` | Kafka cluster used as the default database (e.g. `lkc-abc123`) |
-| `--catalog` | `CONFLUENT_FLINK_CATALOG`         | `register-function.sh`, `drop-function.sh` | Flink catalog name |
+| `--compute-pool-id` | `CONFLUENT_FLINK_COMPUTE_POOL_ID` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Flink compute pool ID (e.g. `lfcp-abc123`) |
+| `--database` | `CONFLUENT_FLINK_DATABASE`        | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Kafka cluster used as the default database (e.g. `lkc-abc123`) |
+| `--catalog` | `CONFLUENT_FLINK_CATALOG`         | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Flink catalog name |
 
 ---
 
@@ -185,9 +186,9 @@ drop-function.sh --function concat_with_separator --database cluster_0
 | `--environment-id <id>` | all scripts | Overrides `CONFLUENT_FLINK_ENVIRONMENT_ID` for this invocation |
 | `--cloud <provider>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Overrides `CONFLUENT_FLINK_CLOUD_PROVIDER` |
 | `--region <region>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Overrides `CONFLUENT_FLINK_CLOUD_REGION` |
-| `--compute-pool-id <id>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_COMPUTE_POOL_ID` |
-| `--database <database>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_DATABASE` |
-| `--catalog <catalog>` | `register-function.sh`, `drop-function.sh` | Overrides `CONFLUENT_FLINK_CATALOG` |
+| `--compute-pool-id <id>` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Overrides `CONFLUENT_FLINK_COMPUTE_POOL_ID` |
+| `--database <database>` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Overrides `CONFLUENT_FLINK_DATABASE` |
+| `--catalog <catalog>` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Overrides `CONFLUENT_FLINK_CATALOG` |
 
 
 
@@ -196,11 +197,11 @@ drop-function.sh --function concat_with_separator --database cluster_0
 
 ## Additional Scripts
 
-Additional scripts, not directly related to the UDF workflow
+Additional scripts, not directly related to the UDF workflow.
 
 ### `create-app-manager-sa.sh` - Create App Manager Service Account + API Keys
 
-Create the Service Account with permissions to create and manage Flink statements.
+Creates the Service Account with permissions to create and manage Flink statements.
 
 This Service Account is used by the Terraform module that creates the statements.
 
@@ -233,7 +234,7 @@ Finally, generates a Flink API key for the service account.
 
 On success, prints the service account ID, Flink API key, and Flink API secret.
 
-> ⚠️Take note of the API Key and Secret displayed by the script. It won't be possible to retrieve the secret later.
+> ⚠️ Take note of the API Key and Secret displayed by the script. It won't be possible to retrieve the secret later.
 
 **Example:**
 ```shell
@@ -245,7 +246,7 @@ create-app-manager-sa.sh --name app-manager \
 
 ### `create-platform-manager-sa.sh` - Create Platform Manager Service Account + API Keys
 
-Create the Service Account with admin permissions to manage Flink resources in the environment.
+Creates the Service Account with admin permissions to manage Flink resources in the environment.
 
 ```shell
 create-platform-manager-sa.sh --name <sa-name> [--description '<description>'] \
@@ -269,10 +270,30 @@ Finally, generates a Cloud API key for the service account.
 
 On success, prints the service account ID, Cloud API key, and Cloud API secret.
 
-> ⚠️Take note of the API Key and Secret displayed by the script. It won't be possible to retrieve the secret later.
+> ⚠️ Take note of the API Key and Secret displayed by the script. It won't be possible to retrieve the secret later.
 
 **Example:**
 ```shell
 create-platform-manager-sa.sh --name platform-manager \
   --description "Platform Manager for Flink administration"
+```
+
+---
+
+### `drop-table.sh` — Drop a Flink table
+
+```shell
+drop-table.sh --table <table-name> \
+              [--environment-id <id>] [--compute-pool-id <id>] \
+              [--database <database>] [--catalog <catalog>] \
+              [--quiet]
+```
+
+Drops a Flink table by executing a `DROP TABLE IF EXISTS` statement.
+
+On success, prints `COMPLETED` (or, with `--quiet`, the table name).
+
+**Example:**
+```shell
+drop-table.sh --table extended_products --database cluster_0
 ```

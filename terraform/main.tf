@@ -221,7 +221,7 @@ resource "confluent_flink_statement" "insert_into_extended_products_v1" {
 #     "sql.current-catalog"            = data.confluent_environment.dev.display_name
 #     "sql.current-database"           = data.confluent_kafka_cluster.main.display_name
 #     # The following property is used to enable carry-over offsets.
-#     # After the statement has been restarted once with carry-over, the property should be removed
+#     # It should be removed, stopping and starting the statement unchanged, after you used it once
 #     "sql.tables.initial-offset-from" = confluent_flink_statement.insert_into_extended_products_v1.statement_name
 #   }
 #
