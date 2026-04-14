@@ -2,13 +2,14 @@
 # drop-function.sh — Drop a Flink UDF from Confluent Cloud
 #
 # Usage:
-#   drop-function.sh --function <function-name> --database <database> [--quiet]
-#                    [--environment-id <id>] [--compute-pool-id <id>] [--catalog <catalog>]
+#   drop-function.sh --function <function-name> [--quiet]
+#                    [--environment-id <id>] [--compute-pool-id <id>]
+#                    [--database <database>] [--catalog <catalog>]
 #
 # Required env vars (set by .secrets/credentials.sh), overridable via parameters:
 #   CONFLUENT_FLINK_ENVIRONMENT_ID  (--environment-id)
 #   CONFLUENT_FLINK_COMPUTE_POOL_ID (--compute-pool-id)
-#   CONFLUENT_FLINK_CATALOG         (--catalog)
+#   CONFLUENT_FLINK_DATABASE        (--database)
 
 set -euo pipefail
 
