@@ -84,17 +84,17 @@ to create the Service Account and API key.
 
 The Terraform module requires several parameters:
 
-| Variable | Description |
-|---|---|
-| `confluent_cloud_api_key` | Confluent Cloud API key (Cloud API ID) |
-| `confluent_cloud_api_secret` | Confluent Cloud API secret |
-| `flink_api_key` | Flink API key associated with the App Manager service account |
-| `flink_api_secret` | Flink API secret |
-| `app_manager_service_account_id` | App Manager service account ID (e.g. `sa-xxxxxx`) |
-| `environment_id` | Confluent Cloud environment ID (e.g. `env-xxxxxx`) |
-| `cloud_provider` | Cloud provider, lowercase (e.g. `aws`) |
-| `cloud_region` | Cloud provider region (e.g. `eu-west-1`) |
-| `compute_pool_id` | Flink compute pool ID (e.g. `lfcp-xxxxxx`) |
+| Variable | Description                                                             |
+|---|-------------------------------------------------------------------------|
+| `confluent_cloud_api_key` | Confluent Cloud API key (Cloud API ID)                                  |
+| `confluent_cloud_api_secret` | Confluent Cloud API secret                                              |
+| `flink_api_key` | Flink API key associated with the App Manager service account           |
+| `flink_api_secret` | Flink API secret                                                        |
+| `app_manager_service_account_id` | App Manager service account ID (e.g. `sa-xxxxxx`)                       |
+| `environment_id` | Confluent Cloud environment ID (e.g. `env-xxxxxx`)                      |
+| `cloud_provider` | Cloud provider, lowercase (e.g. `AWS` - uppercase)                      |
+| `cloud_region` | Cloud provider region (e.g. `eu-west-1`)                                |
+| `compute_pool_id` | Flink compute pool ID (e.g. `lfcp-xxxxxx`)                              |
 | `kafka_cluster_id` | Kafka cluster ID used as the Flink default database (e.g. `lkc-xxxxxx`) |
 
 

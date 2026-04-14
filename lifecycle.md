@@ -128,19 +128,19 @@ The scripts provided and the Terraform module expect several parameters.
 
 #### Variables for scripts
 
-| Env variable | Description |
-| --- | --- |
+| Env variable | Description                                       |
+| --- |---------------------------------------------------|
 | `CONFLUENT_FLINK_ENVIRONMENT_ID` | Confluent Cloud environment ID (e.g. `env-abc123`) |
-| `CONFLUENT_FLINK_CLOUD_PROVIDER` | Cloud provider (e.g. `aws`) |
-| `CONFLUENT_FLINK_CLOUD_REGION` | Cloud region (e.g. `eu-west-1`) |
-| `CONFLUENT_FLINK_COMPUTE_POOL_ID` | Flink compute pool ID (e.g. `lfcp-abc123`) |
-| `CONFLUENT_FLINK_DATABASE` | Kafka cluster used as the default database |
-| `CONFLUENT_FLINK_CATALOG` | Flink catalog name |
-| `CONFLUENT_KAFKA_CLUSTER_ID` | Kafka cluster ID (e.g. `lkc-abc123`) |
-| `CONFLUENT_CLOUD_API_KEY` | Cloud API key (Platform Manager service account) |
-| `CONFLUENT_CLOUD_API_SECRET` | Cloud API secret |
-| `CONFLUENT_FLINK_API_KEY` | Flink API key (App Manager service account) |
-| `CONFLUENT_FLINK_API_SECRET` | Flink API secret |
+| `CONFLUENT_FLINK_CLOUD_PROVIDER` | Cloud provider (e.g. `aws` - lowercase)           |
+| `CONFLUENT_FLINK_CLOUD_REGION` | Cloud region (e.g. `eu-west-1`)                   |
+| `CONFLUENT_FLINK_COMPUTE_POOL_ID` | Flink compute pool ID (e.g. `lfcp-abc123`)        |
+| `CONFLUENT_FLINK_DATABASE` | Kafka cluster used as the default database        |
+| `CONFLUENT_FLINK_CATALOG` | Flink catalog name                                |
+| `CONFLUENT_KAFKA_CLUSTER_ID` | Kafka cluster ID (e.g. `lkc-abc123`)              |
+| `CONFLUENT_CLOUD_API_KEY` | Cloud API key (Platform Manager service account)  |
+| `CONFLUENT_CLOUD_API_SECRET` | Cloud API secret                                  |
+| `CONFLUENT_FLINK_API_KEY` | Flink API key (App Manager service account)       |
+| `CONFLUENT_FLINK_API_SECRET` | Flink API secret                                  |
 | `CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID` | App Manager service account ID (e.g. `sa-abc123`) |
 
 > ℹ️ We recommend creating a script to set these environment variables.
