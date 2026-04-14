@@ -3,7 +3,7 @@
 In this document we examine the deployment lifecycle of a user defined function (it works the same for scalar UDF, UDTF, or PTF) 
 and the SQL statements using it.
 
-The lifecycle uses a combination of shell scropts, leveraging Confluent CLI, 
+The lifecycle uses a combination of shell scripts, leveraging Confluent CLI, 
 and a simple Terraform module.
 
 Check out the detailed documentation in the [terraform](./terraform) and [scripts](./scripts) subfolders.
@@ -120,32 +120,68 @@ restarting the v2 statement from the point the v1 statement is stopped.
 
 The scripts provided and the Terraform module expect several parameters.
 
-* Scripts: you can pass parameters explicitly or via environment variables
-* Terraform: you need to pass all parameters explicitly, when invoking `terraform <command>`.
-  In these examples we get the values of these parameters from environment variables.
+* Scripts: you can pass parameters explicitly or via environment variables (see [scripts README - Parameters](./scripts/README.md#parameters))
+* Terraform: create a copy of [`terraform/example.tfvars`](terraform/example.tfvars) called for example `my_env.tfvars`, 
+  edit with your actual values, and pass the file on every invocation of `terraform` with `-var-file=my_env.tfvars`
 
+> ⚠️ Some of these variables contain secrets. Make sure you do not commit these to a shared repository
 
-| Env variable | Used by | Description |
-| --- | --- | --- |
-| `CONFLUENT_FLINK_ENVIRONMENT_ID` | Scripts, Terraform | Confluent Cloud environment ID (e.g. `env-abc123`) |
-| `CONFLUENT_FLINK_CLOUD_PROVIDER` | Scripts, Terraform | Cloud provider (e.g. `aws`) |
-| `CONFLUENT_FLINK_CLOUD_REGION` | Scripts, Terraform | Cloud region (e.g. `eu-west-1`) |
-| `CONFLUENT_FLINK_COMPUTE_POOL_ID` | Scripts, Terraform | Flink compute pool ID (e.g. `lfcp-abc123`) |
-| `CONFLUENT_FLINK_DATABASE` | Scripts | Kafka cluster used as the default database |
-| `CONFLUENT_FLINK_CATALOG` | Scripts | Flink catalog name |
-| `CONFLUENT_KAFKA_CLUSTER_ID` | Terraform | Kafka cluster ID (e.g. `lkc-abc123`) |
-| `CONFLUENT_CLOUD_API_KEY` | Terraform | Cloud API key (Platform Manager service account) |
-| `CONFLUENT_CLOUD_API_SECRET` | Terraform | Cloud API secret |
-| `CONFLUENT_FLINK_API_KEY` | Terraform | Flink API key (App Manager service account) |
-| `CONFLUENT_FLINK_API_SECRET` | Terraform | Flink API secret |
-| `CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID` | Terraform | App Manager service account ID (e.g. `sa-abc123`) |
+#### Variables for scripts
+
+| Env variable | Description |
+| --- | --- |
+| `CONFLUENT_FLINK_ENVIRONMENT_ID` | Confluent Cloud environment ID (e.g. `env-abc123`) |
+| `CONFLUENT_FLINK_CLOUD_PROVIDER` | Cloud provider (e.g. `aws`) |
+| `CONFLUENT_FLINK_CLOUD_REGION` | Cloud region (e.g. `eu-west-1`) |
+| `CONFLUENT_FLINK_COMPUTE_POOL_ID` | Flink compute pool ID (e.g. `lfcp-abc123`) |
+| `CONFLUENT_FLINK_DATABASE` | Kafka cluster used as the default database |
+| `CONFLUENT_FLINK_CATALOG` | Flink catalog name |
+| `CONFLUENT_KAFKA_CLUSTER_ID` | Kafka cluster ID (e.g. `lkc-abc123`) |
+| `CONFLUENT_CLOUD_API_KEY` | Cloud API key (Platform Manager service account) |
+| `CONFLUENT_CLOUD_API_SECRET` | Cloud API secret |
+| `CONFLUENT_FLINK_API_KEY` | Flink API key (App Manager service account) |
+| `CONFLUENT_FLINK_API_SECRET` | Flink API secret |
+| `CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID` | App Manager service account ID (e.g. `sa-abc123`) |
 
 > ℹ️ We recommend creating a script to set these environment variables.
-> ⚠️Some of these env variables contain secrets. Make sure you do not commit the script to any shared repository.
+
+#### Variables for Terraform (.tfvars file)
+
+Example of `.tfvars` file content:
+
+```terraform
+# Cloud API Key with EnvironmentAdmin and AccountAdmin roles (like the Platform Manager Service Account in this example)
+confluent_cloud_api_key    = "PLATFORM_MANAGER_API_KEY"
+confluent_cloud_api_secret = "PLATFORM_MANAGER_API_SECRET"
+
+# Flink Service Account
+# App Manager Service Account ID (format: sa-xxxxx)
+app_manager_service_account_id = "sa-123456"
+
+# Flink API Credentials
+# API key and secret associated with the App Manager Service Account
+flink_api_key    = "YOUR_FLINK_API_KEY"
+flink_api_secret = "YOUR_FLINK_API_SECRET"
+
+# Cloud Infrastructure
+# Example: "AWS", "GCP", or "AZURE"
+cloud_provider = "AWS"
+# Example: "us-east-1", "us-west-2", etc.
+cloud_region   = "us-east-1"
+
+# Confluent Cloud Resources
+# Environment ID (format: env-xxxxx)
+environment_id = "env-123456"
+# Compute Pool ID (format: lfcp-xxxxx)
+compute_pool_id = "lfcp-123456"
+# Kafka Cluster ID (format: lkc-xxxxx)
+kafka_cluster_id = "lkc-123456"
+```
+
 
 ### Confluent CLI Login
 
-Before running any of the scripts you need to start an authenticated session for Confluent CLI.
+Before running any of the scripts, you need to start an authenticated session for Confluent CLI.
 
 Use [`confluent login`](https://docs.confluent.io/confluent-cli/current/command-reference/confluent_login.html) to authenticate.
 
@@ -189,22 +225,12 @@ Before using the Terraform module the first time, run `terraform init` from with
      Make sure you have selected the correct Catalog ( = Environment) and Database ( = Kafka cluster)
 4. Create SQL statements which use the UDF - using Terraform
    1. Terraform Plan
-      (pass all required variables getting values from environment variables; save the plan in `plan.tfplan`)
+      (pass the tfvars file; save the plan in `plan.tfplan`)
       ```shell
-      terraform -chdir=terraform plan -out=plan.tfplan \
-        -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
-        -var="confluent_cloud_api_secret=${CONFLUENT_CLOUD_API_SECRET}" \
-        -var="flink_api_key=${CONFLUENT_FLINK_API_KEY}" \
-        -var="flink_api_secret=${CONFLUENT_FLINK_API_SECRET}" \
-        -var="app_manager_service_account_id=${CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID}" \
-        -var="environment_id=${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
-        -var="cloud_provider=${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
-        -var="cloud_region=${CONFLUENT_FLINK_CLOUD_REGION}" \
-        -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
-        -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
+      terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
       ```
    2. Terraform Apply
-      (use the saved plan)
+      (use the saved plan - variables are not required)
       ```shell
       terraform -chdir=terraform apply plan.tfplan
       ```
@@ -213,7 +239,7 @@ The initial version of the UDF is now deployed and being used by the running `IN
 A second `INSERT INTO ...` is also running to populate `base_products`, to have a complete end-to-end pipeline.
 
 You can observe source data being written into `base_products` and the transformed data into `extended_products`
-running `SELECT * FROM base_products`  and `SELECT * FROM extended_products` from a SQL Workspace. 
+running `SELECT * FROM base_products` and `SELECT * FROM extended_products` from a SQL Workspace. 
 
 In the Compute Pool you can also observe the two `INSERT INTO ...` statements running.
 
@@ -247,20 +273,10 @@ pretending an update.
    ```
    * Run `DESCRIBE FUNCTION concat_with_separator`. You can see the function is there now, and uses the new artifact (`plugin id`)
 5. Stop the SQL statement
-   (we use Terraform to stop and restart the statement; this makes the statement using the new UDF version)
+   (we use Terraform to stop and restart the statement; this ensures the statement uses the new UDF version)
    1. Terraform Plan (note the additional parameter `-var="statement_stopped=true"` )
       ```shell
-      terraform -chdir=terraform plan -var="statement_stopped=true" -out=plan.tfplan \
-        -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
-        -var="confluent_cloud_api_secret=${CONFLUENT_CLOUD_API_SECRET}" \
-        -var="flink_api_key=${CONFLUENT_FLINK_API_KEY}" \
-        -var="flink_api_secret=${CONFLUENT_FLINK_API_SECRET}" \
-        -var="app_manager_service_account_id=${CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID}" \
-        -var="environment_id=${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
-        -var="cloud_provider=${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
-        -var="cloud_region=${CONFLUENT_FLINK_CLOUD_REGION}" \
-        -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
-        -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
+      terraform -chdir=terraform plan -var-file=my_env.tfvars -var="statement_stopped=true" -out=plan.tfplan
       ```
    2. Terraform Apply
       ```shell
@@ -270,17 +286,7 @@ pretending an update.
 6. Restart the SQL statement
    1. Terraform Plan (no additional parameter)
       ```shell
-      terraform -chdir=terraform plan -out=plan.tfplan \
-        -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
-        -var="confluent_cloud_api_secret=${CONFLUENT_CLOUD_API_SECRET}" \
-        -var="flink_api_key=${CONFLUENT_FLINK_API_KEY}" \
-        -var="flink_api_secret=${CONFLUENT_FLINK_API_SECRET}" \
-        -var="app_manager_service_account_id=${CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID}" \
-        -var="environment_id=${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
-        -var="cloud_provider=${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
-        -var="cloud_region=${CONFLUENT_FLINK_CLOUD_REGION}" \
-        -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
-        -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
+      terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
       ```
    2. Terraform Apply - restart the statement, using the new function version
       ```shell
@@ -339,12 +345,12 @@ Confluent Cloud Flink provides the [Carry-over Offsets](https://docs.confluent.i
 the same position in the source topic where the old statement is stopped. This guarantees no data loss and no duplicates
 when the update is executed.
 
-> ⚠️ Carry-over offsets have limitations. It only supports stateless statements. If your statement is not stateless, you
+> ⚠️ Carry-over offsets have limitations. They only support stateless statements. If your statement is not stateless, you
 > cannot use Carry-over offsets.
 > Note that statements writing to an upsert table - like a table with a primary key - cannot use Carry-over offsets because 
 > they internally use a stateful operator.
 
-> ℹ️ Why we can't rely on Terraform to update the statement?
+> ℹ️ Why can't we rely on Terraform to update the statement?
 > To use Carry-over offsets we cannot just update the SQL code of the statement and let Terraform update it.
 > Confluent Flink statements are immutable. Any change to the statement requires stopping, deleting, and creating a new statement.
 > This is what Terraform would do if you modify an existing statement. However, Carry-over offsets require a reference
@@ -383,17 +389,7 @@ The steps that follow are different from the simple update:
       (Note this sets the property `"sql.tables.initial-offset-from"` to the auto-generated name previously assigned to the v1 statement)
    3. Terraform Plan
       ```shell
-      terraform -chdir=terraform plan -out=plan.tfplan \
-        -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
-        -var="confluent_cloud_api_secret=${CONFLUENT_CLOUD_API_SECRET}" \
-        -var="flink_api_key=${CONFLUENT_FLINK_API_KEY}" \
-        -var="flink_api_secret=${CONFLUENT_FLINK_API_SECRET}" \
-        -var="app_manager_service_account_id=${CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID}" \
-        -var="environment_id=${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
-        -var="cloud_provider=${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
-        -var="cloud_region=${CONFLUENT_FLINK_CLOUD_REGION}" \
-        -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
-        -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
+      terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
       ```
    4. Terraform Apply
       ```shell
@@ -404,23 +400,13 @@ The steps that follow are different from the simple update:
       1. Edit [main.tf](terraform/main.tf):
          * Remove (comment out) the resource of the v1 statement (`confluent_flink_statement.insert_into_extended_products_v1`)
          * Remove (comment out) the property `"sql.tables.initial-offset-from" = confluent_flink_statement.insert_into_extended_products_v1.statement_name`
-            in the v2 statement  (`confluent_flink_statement.insert_into_extended_products_v2`)
+            in the v2 statement (`confluent_flink_statement.insert_into_extended_products_v2`)
       2. Terraform Plan (note the `-var="statement_stopped=true"` parameter)
          > ⚠️ The Terraform provider requires `stopped` to be toggled when modifying statement properties.
          > Since we are removing the carry-over offset property, `stopped` must also change.
          > We stop v2 here (combining the property change with the stop) and restart it in the next step.
          ```shell
-         terraform -chdir=terraform plan -var="statement_stopped=true" -out=plan.tfplan \
-           -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
-           -var="confluent_cloud_api_secret=${CONFLUENT_CLOUD_API_SECRET}" \
-           -var="flink_api_key=${CONFLUENT_FLINK_API_KEY}" \
-           -var="flink_api_secret=${CONFLUENT_FLINK_API_SECRET}" \
-           -var="app_manager_service_account_id=${CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID}" \
-           -var="environment_id=${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
-           -var="cloud_provider=${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
-           -var="cloud_region=${CONFLUENT_FLINK_CLOUD_REGION}" \
-           -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
-           -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
+         terraform -chdir=terraform plan -var-file=my_env.tfvars -var="statement_stopped=true" -out=plan.tfplan
          ```
       3. Terraform Apply
          ```shell
@@ -429,17 +415,7 @@ The steps that follow are different from the simple update:
 8. Restart v2
       1. Terraform Plan (no `-var="statement_stopped=true"` — the default `false` restarts v2)
          ```shell
-         terraform -chdir=terraform plan -out=plan.tfplan \
-           -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
-           -var="confluent_cloud_api_secret=${CONFLUENT_CLOUD_API_SECRET}" \
-           -var="flink_api_key=${CONFLUENT_FLINK_API_KEY}" \
-           -var="flink_api_secret=${CONFLUENT_FLINK_API_SECRET}" \
-           -var="app_manager_service_account_id=${CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID}" \
-           -var="environment_id=${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
-           -var="cloud_provider=${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
-           -var="cloud_region=${CONFLUENT_FLINK_CLOUD_REGION}" \
-           -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
-           -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
+         terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
          ```
       2. Terraform Apply
          ```shell
@@ -469,17 +445,7 @@ To eliminate all resources created by this example:
 
 1. Terraform destroy
    ```shell
-   terraform -chdir=terraform destroy \
-     -var="confluent_cloud_api_key=${CONFLUENT_CLOUD_API_KEY}" \
-     -var="confluent_cloud_api_secret=${CONFLUENT_CLOUD_API_SECRET}" \
-     -var="flink_api_key=${CONFLUENT_FLINK_API_KEY}" \
-     -var="flink_api_secret=${CONFLUENT_FLINK_API_SECRET}" \
-     -var="app_manager_service_account_id=${CONFLUENT_APP_MANAGER_SERVICE_ACCOUNT_ID}" \
-     -var="environment_id=${CONFLUENT_FLINK_ENVIRONMENT_ID}" \
-     -var="cloud_provider=${CONFLUENT_FLINK_CLOUD_PROVIDER}" \
-     -var="cloud_region=${CONFLUENT_FLINK_CLOUD_REGION}" \
-     -var="compute_pool_id=${CONFLUENT_FLINK_COMPUTE_POOL_ID}" \
-     -var="kafka_cluster_id=${CONFLUENT_KAFKA_CLUSTER_ID}"
+   terraform -chdir=terraform destroy -var-file=my_env.tfvars
    ```
 2. Drop the tables (Terraform does not remove them)
    ```shell

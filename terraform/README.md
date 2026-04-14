@@ -40,13 +40,13 @@ The *Platform Manager* must have at minimum the following roles:
 
 | Role | Scope | Resource | Notes |
 |---|---|---|---|
-| FlinkAdmin | Environment | — | Allow managing resources in the Flink environment |
+| FlinkAdmin | Environment | — | Allows managing resources in the Flink environment |
 | ResourceOwner | Cluster | Topic `*` (prefixed) | Read/write access to all Kafka topics |
 
 
 Create an API Key with *Cloud Resource Management* scope associated with the *Platform Manager* Service Account.
 
-These Confluent Cloud API Key and Secret must be passed to Terraform as main credential 
+These Confluent Cloud API Key and Secret must be passed to Terraform as the main credentials 
 (`confluent_cloud_api_key` and `confluent_cloud_api_secret` in the Terraform module).
 
 You can use the script [create-platform-manager.sh](../scripts/README.md#create-platform-manager-sash---create-platform-manager-service-account--api-keys)
@@ -79,7 +79,8 @@ These Flink API Key and Secret must also be passed to Terraform
 You can use the script [create-app-manager.sh](../scripts/README.md#create-app-manager-sash---create-app-manager-service-account--api-keys) 
 to create the Service Account and API key.
 
-## Running Terraform
+
+## Passing variables to Terraform
 
 The Terraform module requires several parameters:
 
@@ -96,13 +97,36 @@ The Terraform module requires several parameters:
 | `compute_pool_id` | Flink compute pool ID (e.g. `lfcp-xxxxxx`) |
 | `kafka_cluster_id` | Kafka cluster ID used as the Flink default database (e.g. `lkc-xxxxxx`) |
 
-These parameters can be passed via command line on every invocation.
-Alternatively, you can create a named `.auto.tfvars` file where you specify all parameters.
-(you can also pass variables to Terraform via env variables named `TF_VAR_*`, not covered in this example).
 
-> ℹ️ Note that the API keys and secrets must be passed to Terraform explicitly.
+### Option 1 (preferred) - Pass the tfvars file on every terraform invocation
 
-### Option 1 — Pass variables on the command line
+```shell
+terraform plan -var-file=example.tfvars
+```
+
+### Option 2 - tfvars file + env variables
+
+If you do not want to put any secret in the tfvars file, you can pass those variables to Terraform using env variables
+named `TF_VAR_variable_name`.
+
+Remove the variables `confluent_cloud_api_key`, `confluent_cloud_api_secret`, `flink_api_key`, and `flink_api_secret`
+from `example.tfvars`, and set the following env variables:
+
+```shell
+export TF_VAR_confluent_cloud_api_key="<platform-manager-api-key>"
+export TF_VAR_confluent_cloud_api_secret="<platform-manager-api-secret>"
+export TF_VAR_flink_api_key="<app-manager-flink-api-key>"
+export TF_VAR_flink_api_secret="<app-manager-flink-api-secret>"
+```
+
+Then, when invoking `terraform`, pass the tfvars file with the other variables.
+
+```shell
+terraform plan -var-file=example.tfvars
+```
+
+
+### Option 3 (verbose) — Pass variables on the command line
 
 ```bash
 terraform apply \
@@ -118,31 +142,11 @@ terraform apply \
   -var="kafka_cluster_id=lkc-xxxxxx"
 ```
 
-### Option 2 — Use a `*.auto.tfvars` file
-
-Create a file named `terraform.auto.tfvars` (or any name ending in `.auto.tfvars`) in this directory. 
-Terraform loads it automatically — no extra flags needed.
-
-```hcl
-confluent_cloud_api_key        = "<cloud-api-key>"
-confluent_cloud_api_secret     = "<cloud-api-secret>"
-flink_api_key                  = "<flink-api-key>"
-flink_api_secret               = "<flink-api-secret>"
-app_manager_service_account_id = "sa-xxxxxx"
-environment_id                 = "env-xxxxxx"
-cloud_provider                 = "aws"
-cloud_region                   = "eu-west-1"
-compute_pool_id                = "lfcp-xxxxxx"
-kafka_cluster_id               = "lkc-xxxxxx"
-```
-> ⚠️ `*.auto.tfvars` files contain secrets. Add them to `.gitignore` to avoid committing credentials.
-
-Terraform will use these values on every invocation.
-
+---
 
 ## Selectively stopping the INSERT INTO statement
 
-To be able to selectively stop the running `INSERT INTO` statement, without destroying, the Terraform module specifies
+To be able to selectively stop the running `INSERT INTO` statement, without destroying it, the Terraform module specifies
 the parameter `stopped` for that `confluent_flink_statement` resource.
 By default, this is set to `false`, meaning that Terraform will start the statement on first deployment and keep it running
 on any new apply (unless the statement is modified).
