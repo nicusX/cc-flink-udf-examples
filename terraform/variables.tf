@@ -52,8 +52,22 @@ variable "kafka_cluster_id" {
   type        = string
 }
 
-variable "statement_stopped" {
-  description = "Whether the INSERT INTO statement should be stopped"
+variable "stop_statement_v1" {
+  description = "Whether the v1 INSERT INTO statement should be stopped"
+  type        = bool
+  # Once v2 has be started with the latest offsets of v1, change the default to `true`
+  default     = false
+}
+
+variable "stop_statement_v2" {
+  description = "Whether the v2 INSERT INTO statement should be stopped"
   type        = bool
   default     = false
+}
+
+variable "initial_offsets_v2" {
+  description = "Starting offsets for the source table (partition:0,offset:N;...). Use get_latest_offsets.sh to extract from a stopped statement."
+  type        = string
+  # Once the v2 statement is started, set the default to the actual latest offsets from v1
+  default     = ""
 }

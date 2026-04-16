@@ -154,14 +154,16 @@ on any new apply (unless the statement is modified).
 ### UDF update without SQL statement changes
 
 To selectively stop and restart the statement, as required when a new version of the UDF is deployed, we proceed in two steps:
-1. Terraform apply setting the variable `statement_stopped`=`true` (passing the parameter `-var="statement_stopped=true"`) - this stops the statement
+1. Terraform apply setting the variable `stop_statement_v1`=`true` (passing the parameter `-var="stop_statement_v1=true"`) - this stops the v1 statement
   ```bash
-  terraform apply -var="statement_stopped=true" ...
+  terraform apply -var="stop_statement_v1=true" ...
   ```
 2. Another Terraform apply, without setting it - this restarts the statement
   ```bash
   terraform apply ...
   ```
+
+The v2 statement can be controlled independently with `stop_statement_v2`.
 
 ### UDF update with SQL statement changes (carry-over offsets)
 

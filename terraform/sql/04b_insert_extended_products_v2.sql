@@ -4,4 +4,4 @@ SELECT
     product_id,
     `name`,
     concat_with_separator(`name`, `brand`, `vendor`, `brand`, ' + ') AS extended_name
-FROM `base_products`;
+FROM `base_products`%{ if initial_offsets != "" } /*+ OPTIONS('scan.startup.mode' = 'specific-offsets', 'scan.startup.specific-offsets' = '${initial_offsets}') */%{ endif };

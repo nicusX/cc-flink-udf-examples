@@ -61,8 +61,8 @@ Let's examine the lifecycle at a high level, for different scenarios.
 
 ### Scenario 1: First deployment
 
-1. Build artifact v1 - maven
-2. Upload artifact v1 - script (`upload-artifact.sh`)
+1. Build artifact v1.0 - maven
+2. Upload artifact v1.0 - script (`upload-artifact.sh`)
 3. Register function(s) - script (`register-function.sh`)
 4. Create SQL statements which use the UDF - Terraform
 
@@ -73,58 +73,63 @@ Let's test deploying a change which does not require changing the SQL statement.
 We still need to stop and restart the statement, after having deployed and registered the new function version, to ensure
 the new implementation is used.
 
-1. Build function version v2
-2. Upload artifact v2 - script (`upload-artifact.sh`)
+1. Build artifact v1.1
+2. Upload artifact v1.1 - script (`upload-artifact.sh`)
 3. Un-register function(s) - script (`drop-function.sh`)
-4. Register function(s) using artifact v2 (the running statement is still using the old version of the function) - script (`register-function.sh`)
+4. Register function(s) using artifact v1.1 (the running statement is still using the old version of the function) - script (`register-function.sh`)
 5. Stop the SQL statement - Terraform
 6. Restart the SQL statement (will use the new version of the function) - Terraform
-7. (test, rollback to v1 if something goes wrong)
-8. (optional) Delete artifact v1 - script (`delete-artifact.sh`)
+7. (test)
+8. (optional) Delete artifact v1.0 - script (`delete-artifact.sh`)
 
 ### Scenario 3: Rollback to v1
 
+If something wrong is detected during tests, in the previous workflow:
+
 1. Un-register function(s) - script (`drop-function.sh`)
-2. Register function(s) using artifact v1 - script (`register-function.sh`)
+2. Register function(s) using artifact v1.0 - script (`register-function.sh`)
 3. Stop the SQL statement - Terraform
 4. Restart the SQL statement - Terraform
-5. (optional) Delete artifact v2 (the one not working correctly) - script (`delete-artifact.sh`)
+5. (optional) Delete artifact v1.1 (the one not working correctly) - script (`delete-artifact.sh`)
 
 
 ### Scenario 4: UDF update - change to the SQL statement required
 
 If the UDF change requires modifying the SQL statement too, for example for a change in the function signature, you need
-to replace the SQL statement v1 with a new v2 statement. 
-Using [Carry-over Offsets](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/carry-over-offsets.html) allows
-restarting the v2 statement from the point the v1 statement is stopped.
+to replace the SQL statement v1 (using UDF v1.x) with a new v2 statement (which uses UDF v2.0). 
+We ensure statement v2 starts from exactly the same position in the source table where v1 was stopped.
 
-(the initial steps are identical to the previous update)
-1. Build function version v2
-2. Upload artifact v2 - script (`upload-artifact.sh`)
+The first steps are identical to Scenario 2:
+1. Build artifact v2.0
+2. Upload artifact v2.0 - script (`upload-artifact.sh`)
 3. Un-register function(s) - script (`drop-function.sh`)
-4. Register function(s) using artifact v2 (the running statement is still using the old version of the function) - script (`register-function.sh`)
+4. Register function(s) using artifact v2.0  - script (`register-function.sh`)
+5. Stop the SQL statement - Terraform
 
-(the process changes here)
-5. Stop the statement v1 and create a statement v2 which uses carry-over offsets from the old statement - Terraform
-6. (test, rollback to v1 if something goes wrong)
-7. Stop v2, remove carry-over offsets, and delete statement v1 - Terraform
-8. Restart v2 - Terraform
+From here, things are different, because we need to create a new statement and pass the offsets:
+6. Fetch the latest offsets where the statement v1 was stopped - script (`get_latest_offsets.sh`)
+7. Create the new v2 statement and start it from the latest offsets of v1; v1 stays stopped - Terraform
+8. (Run tests)
+9. Make the initial offsets permanent and v1 stopped, permanently - Terraform
 
 
 ---
 
 ## Step-by-step Lifecycle
 
+We describe the step-by-step process for each scenario.
 
-### Passing parameters to the scripts and Terraform
+For the scope of this example, the steps are executed manually. In a real scenario, there will be some form of orchestrator
+like a CI/CD automation tool combined with scripting.
+ 
+### Parameters for scripts and Terraform
 
-The scripts provided and the Terraform module expect several parameters.
-
+The scripts and Terraform module expect several parameters. They use two different mechanisms:
 * Scripts: you can pass parameters explicitly or via environment variables (see [scripts README - Parameters](./scripts/README.md#parameters))
 * Terraform: create a copy of [`terraform/example.tfvars`](terraform/example.tfvars) called for example `my_env.tfvars`, 
   edit with your actual values, and pass the file on every invocation of `terraform` with `-var-file=my_env.tfvars`
 
-> ⚠️ Some of these variables contain secrets. Make sure you do not commit these to a shared repository
+> ⚠️ Some of these variables contain secrets. Make sure you do not commit these to a shared repository.
 
 #### Variables for scripts
 
@@ -147,7 +152,7 @@ The scripts provided and the Terraform module expect several parameters.
 
 #### Variables for Terraform (.tfvars file)
 
-Example of `.tfvars` file content:
+Example of `.tfvars` file content (also see [terraform/example.tfvars](./terraform/example.tfvars))
 
 ```terraform
 # Cloud API Key with EnvironmentAdmin and AccountAdmin roles (like the Platform Manager Service Account in this example)
@@ -181,18 +186,22 @@ kafka_cluster_id = "lkc-123456"
 
 ### Confluent CLI Login
 
-Before running any of the scripts, you need to start an authenticated session for Confluent CLI.
-
+The scripts use Confluent CLI which requires an authenticated session.
 Use [`confluent login`](https://docs.confluent.io/confluent-cli/current/command-reference/confluent_login.html) to authenticate.
 
-The authentication method can be email/password or SSO, depending on the setup of the Confluent Cloud Organization.
-If your organization uses email/password, you can set the environment variables `CONFLUENT_CLOUD_EMAIL` and `CONFLUENT_CLOUD_PASSWORD`.
-`confluent login` will use them automatically to log you in.
+Supported authentication methods are email+password and SSO.
+Which method to use depends on the setup of the Confluent Cloud Organization.
+For email+password authentication, you can set the environment variables `CONFLUENT_CLOUD_EMAIL` and `CONFLUENT_CLOUD_PASSWORD`,
+and `confluent login` will use them automatically to log you in.
 
 
 ### Terraform INIT
 
-Before using the Terraform module the first time, run `terraform init` from within the `./terraform` folder.
+Initialize the Terraform project.
+
+```shell
+terraform -chdir=terraform init
+```
 
 ### Scenario 1: First deployment
 
@@ -222,12 +231,12 @@ Before using the Terraform module the first time, run `terraform init` from with
      --artifact-id "${ARTIFACT_ID}"
    ```
    * You can verify that the function was actually registered by executing `SHOW USER FUNCTIONS` and `DESCRIBE FUNCTION concat_with_separator` in a SQL Workspace.
-     Make sure you have selected the correct Catalog ( = Environment) and Database ( = Kafka cluster)
+     Make sure you have selected the correct Catalog ( = Environment) and Database ( = Kafka cluster).
 4. Create SQL statements which use the UDF - using Terraform
-   1. Terraform Plan
-      (pass the tfvars file; save the plan in `plan.tfplan`)
+   1. Terraform Plan - save the plan in `plan.tfplan`
+      (replace `my_env.tfvars` with your configuration file)
       ```shell
-      terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
+      terraform -chdir=terraform plan -out=plan.tfplan -var-file=my_env.tfvars
       ```
    2. Terraform Apply
       (use the saved plan - variables are not required)
@@ -239,9 +248,9 @@ The initial version of the UDF is now deployed and being used by the running `IN
 A second `INSERT INTO ...` is also running to populate `base_products`, to have a complete end-to-end pipeline.
 
 You can observe source data being written into `base_products` and the transformed data into `extended_products`
-running `SELECT * FROM base_products` and `SELECT * FROM extended_products` from a SQL Workspace. 
+by running `SELECT * FROM base_products` and `SELECT * FROM extended_products` from a SQL Workspace. 
 
-In the Compute Pool you can also observe the two `INSERT INTO ...` statements running.
+In the Compute Pool, you can also observe the two `INSERT INTO ...` statements running.
 
 ### Scenario 2: UDF update - no change to the SQL statement required
 
@@ -262,7 +271,7 @@ pretending an update.
    ```shell
    scripts/drop-function.sh --function concat_with_separator
    ```
-   * You can observe that the statement keeps running, checking the Compute Pool and querying `extended_products`
+   * You can observe that the statement keeps running, checking the Compute Pool and querying `extended_products`.
    * If you try to describe the function, with `DESCRIBE FUNCTION concat_with_separator` you get an error, because the UDF has been un-registered.
 4. Register the function using the new artifact version
    ```shell
@@ -271,12 +280,13 @@ pretending an update.
      --class io.confluent.flink.examples.udf.scalar.ConcatWithSeparator \
      --artifact-id "${ARTIFACT_ID}"
    ```
-   * Run `DESCRIBE FUNCTION concat_with_separator`. You can see the function is there now, and uses the new artifact (`plugin id`)
+   * Run `DESCRIBE FUNCTION concat_with_separator`. You can see the function is there now, and uses the new artifact (`plugin id`).
 5. Stop the SQL statement
    (we use Terraform to stop and restart the statement; this ensures the statement uses the new UDF version)
-   1. Terraform Plan (note the additional parameter `-var="statement_stopped=true"` )
+   1. Terraform Plan
+      (note the additional parameter `-var="stop_statement_v1=true"`)
       ```shell
-      terraform -chdir=terraform plan -var-file=my_env.tfvars -var="statement_stopped=true" -out=plan.tfplan
+      terraform -chdir=terraform plan -var="stop_statement_v1=true" -out=plan.tfplan  -var-file=my_env.tfvars
       ```
    2. Terraform Apply
       ```shell
@@ -284,9 +294,9 @@ pretending an update.
       ```
    * In the Console > Compute Pool, you can see the statement is now "Stopped"
 6. Restart the SQL statement
-   1. Terraform Plan (no additional parameter)
+   1. Terraform Plan (note: no `stop_statement_v1` parameter; default is `false`)
       ```shell
-      terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
+      terraform -chdir=terraform plan -out=plan.tfplan -var-file=my_env.tfvars
       ```
    2. Terraform Apply - restart the statement, using the new function version
       ```shell
@@ -295,15 +305,15 @@ pretending an update.
    * In the Console > Compute Pool, you can see the statement is now "Running"
 7. (Run tests) - You normally run some tests to verify the new UDF is working as expected.
    In this example, simply execute `SELECT $rowtime, * FROM extended_products` and verify new records are emitted.
-8. (Optionally) delete the old artifact
+8. (Optional) Delete the old artifact
+   > ℹ️ Deleting the old artifact is optional, because we are versioning artifacts by name.
+   > There is no cost directly associated with uploaded artifacts.
+   > However, there are [limitations](https://docs.confluent.io/cloud/current/flink/concepts/user-defined-functions.html#udf-limitations)
+   > to the total number of artifacts per environment and cloud region.
    ```shell
    scripts/delete-artifact.sh --artifact-name udf-examples-1.0
    ```
 
-> ℹ️ Deleting the old artifact is optional, because we are versioning artifacts by name.
-> There is no cost directly associated with uploaded artifacts. 
-> However, there are [limitations](https://docs.confluent.io/cloud/current/flink/concepts/user-defined-functions.html#udf-limitations)
-> to the total number of artifacts per environment and cloud region.
 
 ### Scenario 3: Rollback to a previous UDF version
 
@@ -311,21 +321,21 @@ If your test failed (and you haven't yet deleted the artifact version 1.0), you 
 the function.
 
 
-1. Un-register function
+1. Un-register the function
    ```shell
    scripts/drop-function.sh --function concat_with_separator
    ```
-2. Register function using the previous artifact version
-   * In a real automation scenario the old artifact-id must be saved somewhere and passed to the script.
-     For the sake of this example, we can run `scripts/list-artifacts.sh` to show all artifacts uploaded in the specific Environment and check the ID
+2. Register the function using the previous artifact version
+   * In a real automation scenario, the old artifact-id must be saved somewhere and passed to the script.
+     For the sake of this example, we can run `scripts/list-artifacts.sh` to show all artifacts uploaded in the specific Environment and check the ID.
    ```shell
    scripts/register-function.sh \
      --function concat_with_separator \
      --class io.confluent.flink.examples.udf.scalar.ConcatWithSeparator \
      --artifact-id "<previous-artifact-id>"
    ```   
-3. Stop & Restart the SQL statement - Use Terraform, same as in the previous case
-4. (optional) Delete the artifact 1.1, which wasn't working properly
+3. Stop & Restart the SQL statement - Use Terraform, same as in the previous scenario
+4. (Optional) Delete artifact v1.1, which wasn't working properly
    ```shell
    scripts/delete-artifact.sh --artifact-name udf-examples-1.1
    ```
@@ -334,36 +344,21 @@ the function.
 
 We want to simulate a change to the function which requires modifying the SQL statement. For example, a change in the function signature.
 
-In this test we do not need to change the function code. `concat_with_separator` supports multiple signatures with different
-numbers of parameters. We will pretend we made a major change bumping the POM version to `2.0` and updating the SQL statement
+In this test, we do not need to change the function code. `concat_with_separator` supports multiple signatures with different
+numbers of parameters. We will pretend we made a major change by bumping the POM version to `2.0` and updating the SQL statement
 to use a different function signature.
-
 
 In this case, we need to replace the statement with a new one (in the previous case, we just stopped and restarted the same statement).
 
-Confluent Cloud Flink provides the [Carry-over Offsets](https://docs.confluent.io/cloud/current/flink/operate-and-deploy/carry-over-offsets.html) feature you can use to ensure the new statement starts from
-the same position in the source topic where the old statement is stopped. This guarantees no data loss and no duplicates
-when the update is executed.
-
-> ⚠️ Carry-over offsets have limitations. They only support stateless statements. If your statement is not stateless, you
-> cannot use Carry-over offsets.
-> Note that statements writing to an upsert table - like a table with a primary key - cannot use Carry-over offsets because 
-> they internally use a stateful operator.
-
-> ℹ️ Why can't we rely on Terraform to update the statement?
-> To use Carry-over offsets we cannot just update the SQL code of the statement and let Terraform update it.
-> Confluent Flink statements are immutable. Any change to the statement requires stopping, deleting, and creating a new statement.
-> This is what Terraform would do if you modify an existing statement. However, Carry-over offsets require a reference
-> to the old statement which cannot be deleted when the new statement starts. This implies stopping the first statement
-> and creating a new one.
- 
+> ℹ️ This scenario requires editing the Terraform files. Some will be manual, like adding the new statement version.
+> Other changes, such as updating `variables.tf` to make the initial offsets permanent, should be automated.
 
 
-The initial steps are identical to the simple update.
+The initial steps are identical to the simple update, except we bump the version to 2.0:
 
 1. Build a new version (2.0)
-   * Bump the version to `2.0` 
-   * Rebuild: `mvn clean package`
+   * Bump the version to 2.0
+   * Rebuild: `mvn clean package` - creates `target/udf-examples-2.0.jar`
 2. Upload new artifact (2.0)
    ```shell
    ARTIFACT_ID=$(scripts/upload-artifact.sh --path target/udf-examples-2.0.jar --description "UDF examples v2.0" --quiet)
@@ -379,63 +374,60 @@ The initial steps are identical to the simple update.
      --class io.confluent.flink.examples.udf.scalar.ConcatWithSeparator \
      --artifact-id "${ARTIFACT_ID}"
    ```
-
-The steps that follow are different from the simple update:
-5. Stop statement v1 and create statement v2 using carry-over offsets.
-   Edit [main.tf](terraform/main.tf) making the following changes (the code is already there, you need to comment/uncomment sections)
-   1. Old v1 statement `confluent_flink_statement.insert_into_extended_products_v1`: force the property `stopped = true`.
-      This ensures the old statement is stopped, but not deleted.
-   2. New v2 statement `confluent_flink_statement.insert_into_extended_products_v2`: uncomment the entire resource.
-      (Note this sets the property `"sql.tables.initial-offset-from"` to the auto-generated name previously assigned to the v1 statement)
-   3. Terraform Plan
+5. Stop the SQL statement v1
+   (we use Terraform to stop the statement)
+   1. Terraform Plan
+      (note the additional parameter `-var="stop_statement_v1=true"`)
       ```shell
-      terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
+      terraform -chdir=terraform plan -var="stop_statement_v1=true" -out=plan.tfplan  -var-file=my_env.tfvars
+      ```
+   2. Terraform Apply
+      ```shell
+      terraform -chdir=terraform apply plan.tfplan
+      ```
+   
+The steps that follow are different from the simple update:
+
+6. Fetch the latest offsets where the statement v1 was stopped
+   ```shell
+   OFFSETS=$(scripts/get_latest_offsets.sh --statement-name "$(terraform -chdir=terraform output -raw v1-statement-name)" --table base_products --quiet)
+   ```
+   * Verify the offsets: `echo $OFFSETS`
+7. Create the new v2 statement and start it from the latest offsets of v1; v1 stays stopped
+   1. Edit [main.tf](terraform/main.tf): uncomment the block of code with the resource `insert_into_extended_products_v2`
+      (in a real scenario, you would add a new resource now)
+   2. Terraform Plan - pass the offsets, and keep v1 stopped
+      (note `-var="stop_statement_v1=true"` and `-var="initial_offsets_v2=${OFFSETS}"`)
+      ```shell
+      terraform -chdir=terraform plan -var="stop_statement_v1=true" -var="initial_offsets_v2=${OFFSETS}" -out=plan.tfplan  -var-file=my_env.tfvars
+      ```
+   3. Terraform Apply
+      ```shell
+      terraform -chdir=terraform apply plan.tfplan
+      ```
+8. (Run tests to verify the statement v2 with UDF 2.0 works)
+9. Make the initial offsets permanent and v1 stopped, permanently
+   1. Get the latest offsets of statement v1
+   ```shell
+   scripts/get_latest_offsets.sh --statement-name "$(terraform -chdir=terraform output -raw v1-statement-name)" --table base_products --quiet
+   ```
+   > ℹ️ We haven't yet deleted statement v1, and its latest offsets are still available.
+   2. Edit [variables.tf](./terraform/variables.tf)
+      * Set the default for `initial_offsets_v2` to the latest offsets of v1
+      * Set the default for `stop_statement_v1` to `true`
+   3. Terraform Plan (note: no additional parameters, because we changed the defaults)
+      ```shell
+      terraform -chdir=terraform plan -out=plan.tfplan  -var-file=my_env.tfvars
       ```
    4. Terraform Apply
       ```shell
       terraform -chdir=terraform apply plan.tfplan
       ```
-6. (Run tests) - Execute `SELECT $rowtime, * FROM extended_products` to observe records are emitted
-7. Stop v2, remove carry-over offsets, and delete statement v1
-      1. Edit [main.tf](terraform/main.tf):
-         * Remove (comment out) the resource of the v1 statement (`confluent_flink_statement.insert_into_extended_products_v1`)
-         * Remove (comment out) the property `"sql.tables.initial-offset-from" = confluent_flink_statement.insert_into_extended_products_v1.statement_name`
-            in the v2 statement (`confluent_flink_statement.insert_into_extended_products_v2`)
-      2. Terraform Plan (note the `-var="statement_stopped=true"` parameter)
-         > ⚠️ The Terraform provider requires `stopped` to be toggled when modifying statement properties.
-         > Since we are removing the carry-over offset property, `stopped` must also change.
-         > We stop v2 here (combining the property change with the stop) and restart it in the next step.
-         ```shell
-         terraform -chdir=terraform plan -var-file=my_env.tfvars -var="statement_stopped=true" -out=plan.tfplan
-         ```
-      3. Terraform Apply
-         ```shell
-         terraform -chdir=terraform apply plan.tfplan
-         ```
-8. Restart v2
-      1. Terraform Plan (no `-var="statement_stopped=true"` — the default `false` restarts v2)
-         ```shell
-         terraform -chdir=terraform plan -var-file=my_env.tfvars -out=plan.tfplan
-         ```
-      2. Terraform Apply
-         ```shell
-         terraform -chdir=terraform apply plan.tfplan
-         ```
 
-#### What if my statement is stateful and cannot use carry-over offsets?
-
-If your statement cannot use carry-over offsets, for example because the statement is stateful or emits an upsert changelog,
-changes to the statement still require deleting and creating a new statement.
-This is what Terraform does, in place, if you modify the SQL of a statement.
-
-The new statement restarts from a position determined by the [`'scan.startup.mode'`](https://docs.confluent.io/cloud/current/flink/reference/statements/create-table.html#scan-startup-mode)
-option, either the value on the table or what's overridden via [`SET`](https://docs.confluent.io/cloud/current/flink/reference/statements/set.html) 
-or [hint](https://docs.confluent.io/cloud/current/flink/reference/statements/hints.html).
-
-Which [startup mode](https://docs.confluent.io/cloud/current/flink/reference/statements/create-table.html#scan-startup-mode) to use
-depends on the query and the use case.
-In general, exactly-once guarantees are not possible across a statement change. You need to expect either duplicates or data loss, 
-depending on the startup mode selected.
+> ⚠️ The last step is important to ensure Terraform does not restart the statement v1 and does not modify statement v2
+> at the next change.
+> If Terraform detects a change in the statement, for example, the absence of the `initial_offsets_v2` variable, it will destroy
+> the statement and create a new one, losing the starting position.
 
 --- 
 
@@ -452,11 +444,11 @@ To eliminate all resources created by this example:
    scripts/drop-table.sh --table base_products
    scripts/drop-table.sh --table extended_products
    ```
-3. Drop function
+3. Drop the function
    ```shell
    scripts/drop-function.sh --function concat_with_separator
    ```
-4. Delete Artifacts
+4. Delete artifacts
    ```shell
    scripts/delete-artifact.sh --artifact-name udf-examples-1.0
    scripts/delete-artifact.sh --artifact-name udf-examples-1.1
