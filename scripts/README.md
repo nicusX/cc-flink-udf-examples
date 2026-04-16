@@ -11,6 +11,7 @@ Scripts:
 * [`list-artifacts.sh`](#list-artifactssh--list-artifacts): List all artifacts in the environment
 * [`register-function.sh`](#register-functionsh--register-a-flink-udf): Register a function (execute `CREATE FUNCTION ...`)
 * [`drop-function.sh`](#drop-functionsh--drop-a-flink-udf): Un-register a function (execute `DROP FUNCTION ...`)
+* [`get_latest_offsets.sh`](#get_latest_offsetssh---get-latest-offsets-from-a-stopped-statement): Get latest offsets from a stopped statement
 
 Additional scripts:
 * [`create-app-manager-sa.sh`](#create-app-manager-sash---create-app-manager-service-account--api-keys): Creates the Service Account to manage SQL statements
@@ -19,7 +20,9 @@ Additional scripts:
 
 ## Prerequisites
 
-The **Confluent CLI** is the only prerequisite. No other tools are required.
+The **Confluent CLI** is required by all scripts. 
+
+`get_latest_offsets.sh` also requires **jq**.
 
 
 ## Authentication
@@ -49,8 +52,8 @@ Each parameter can be passed directly as a flag or set via an environment variab
 | Flag | Env variable                      | Used by | Description |
 | --- |-----------------------------------| --- | --- |
 | `--environment-id` | `CONFLUENT_FLINK_ENVIRONMENT_ID`  | all scripts | Confluent Cloud environment ID (e.g. `env-abc123`) |
-| `--cloud` | `CONFLUENT_FLINK_CLOUD_PROVIDER`  | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Cloud provider (e.g. `aws`) |
-| `--region` | `CONFLUENT_FLINK_CLOUD_REGION`    | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Cloud region (e.g. `eu-west-1`) |
+| `--cloud` | `CONFLUENT_FLINK_CLOUD_PROVIDER`  | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh`, `get_latest_offsets.sh` | Cloud provider (e.g. `aws`) |
+| `--region` | `CONFLUENT_FLINK_CLOUD_REGION`    | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh`, `get_latest_offsets.sh` | Cloud region (e.g. `eu-west-1`) |
 | `--compute-pool-id` | `CONFLUENT_FLINK_COMPUTE_POOL_ID` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Flink compute pool ID (e.g. `lfcp-abc123`) |
 | `--database` | `CONFLUENT_FLINK_DATABASE`        | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Kafka cluster used as the default database (e.g. `lkc-abc123`) |
 | `--catalog` | `CONFLUENT_FLINK_CATALOG`         | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Flink catalog name |
@@ -176,16 +179,50 @@ On success, prints `COMPLETED` (or, with `--quiet`, the function name).
 drop-function.sh --function concat_with_separator --database cluster_0
 ```
 
+### `get_latest_offsets.sh` - Get latest offsets from a stopped statement
+
+```shell
+get_latest_offsets.sh --statement-name <name> --table <table-name> \
+                      [--environment-id <id>] [--cloud <provider>] [--region <region>] \
+                      [--quiet]
+```
+
+Extracts the latest offsets from a stopped Flink statement, for a given source table.
+The output be used to set the option `scan.startup.specific-offsets` to start a new statement
+from the exact position where the previous one was stopped.
+
+Fails if:
+- the statement is not in `STOPPED` status
+- the specified table is not found in the statement's `latest_offsets`
+
+On success, prints the offset string (e.g. `partition:0,offset:11051;partition:1,offset:14834;...`).
+
+With `--quiet`, only the raw offset string is printed to stdout (suitable for capture in a variable).
+
+> Requires **jq** in addition to the Confluent CLI.
+
+**Examples:**
+```shell
+get_latest_offsets.sh --statement-name tf-2026-04-16-112841-ab4de717 --table base_products
+```
+
+Capture offsets for use with Terraform:
+```shell
+OFFSETS=$(scripts/get_latest_offsets.sh \
+  --statement-name "$(terraform -chdir=terraform output -raw v1-statement-name)" \
+  --table base_products --quiet)
+```
+
 ---
 
 ## Common Options
 
 | Flag | Applies to | Description |
 | --- | --- | --- |
-| `--quiet` | all scripts | Suppresses informational messages; on success prints only the key result (artifact ID or function name). Errors are always printed to stderr. |
+| `--quiet` | all scripts | Suppresses informational messages; on success prints only the key result (artifact ID, function name, or offset string). Errors are always printed to stderr. |
 | `--environment-id <id>` | all scripts | Overrides `CONFLUENT_FLINK_ENVIRONMENT_ID` for this invocation |
-| `--cloud <provider>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Overrides `CONFLUENT_FLINK_CLOUD_PROVIDER` |
-| `--region <region>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh` | Overrides `CONFLUENT_FLINK_CLOUD_REGION` |
+| `--cloud <provider>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh`, `get_latest_offsets.sh` | Overrides `CONFLUENT_FLINK_CLOUD_PROVIDER` |
+| `--region <region>` | `upload-artifact.sh`, `delete-artifact.sh`, `register-function.sh`, `get_latest_offsets.sh` | Overrides `CONFLUENT_FLINK_CLOUD_REGION` |
 | `--compute-pool-id <id>` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Overrides `CONFLUENT_FLINK_COMPUTE_POOL_ID` |
 | `--database <database>` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Overrides `CONFLUENT_FLINK_DATABASE` |
 | `--catalog <catalog>` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Overrides `CONFLUENT_FLINK_CATALOG` |
