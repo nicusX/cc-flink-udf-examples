@@ -39,9 +39,14 @@ environment variables.
 
 See the [Confluent CLI authentication documentation](https://docs.confluent.io/confluent-cli/current/command-reference/confluent_login.html) for details, including SSO and API key login options.
 
-> ⚠️ If you are not logged in, scripts will fail with an error such as:
-> *"Error: you must log in to Confluent Cloud with a username and password to use this command"*.
+### Minimum permissions
 
+The credentials passed to the CLI must have at minimum the following roles:
+
+| Role                     | Scope | Resource | Notes                                                |
+|--------------------------|---|---|------------------------------------------------------|
+| `FlinkDeveloper`         | Environment | — | Allows creating and managing Flink statements        |
+| `FlinkFunctionDeveloper` | Environment | — | Allows creating and managing artifacts and functions |
 
 ---
 
