@@ -2,7 +2,7 @@
 
 When you build your own Java UDF project, there are some important aspects to consider.
 
-Look at the [POM file](../pom.xml) of this project as an example to expand and adjust for your UDFs.
+Look at the [POM file](./pom.xml) of this project as an example to expand and adjust for your UDFs.
 
 
 ### Java version
@@ -24,7 +24,7 @@ At the time of writing, the Flink API version supported for Confluent Cloud UDFs
 
 Any dependency which is not provided by the runtime must be packaged with the UDF artifact.
 
-As you can see in the [POM file](../pom.xml), `maven-shade-plugin` is used to build an *uber-jar* including all required
+As you can see in the [POM file](./pom.xml), `maven-shade-plugin` is used to build an *uber-jar* including all required
 dependencies.
 
 ### Avoiding dependency clashes
