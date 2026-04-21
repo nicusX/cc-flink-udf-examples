@@ -225,7 +225,7 @@ and `confluent login` will use them automatically to log you in.
 Initialize the Terraform project.
 
 ```shell
-F
+terraform -chdir=terraform init
 ```
 
 ### Scenario 1: First deployment
