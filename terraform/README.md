@@ -38,10 +38,10 @@ This is the main Service Account used by Terraform to interact with Confluent Cl
 
 The *Platform Manager* must have at minimum the following roles:
 
-| Role | Scope | Resource | Notes |
-|---|---|---|---|
-| `FlinkAdmin` | Environment | — | Allows managing resources in the Flink environment |
-| `ResourceOwne`r | Cluster | Topic `*` (prefixed) | Read/write access to all Kafka topics |
+| Role            | Scope | Resource | Notes |
+|-----------------|---|---|---|
+| `FlinkAdmin`    | Environment | — | Allows managing resources in the Flink environment |
+| `ResourceOwner` | Cluster | Topic `*` (prefixed) | Read/write access to all Kafka topics |
 
 
 Create an API Key with *Cloud Resource Management* scope associated with the *Platform Manager* Service Account.

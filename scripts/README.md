@@ -233,7 +233,6 @@ OFFSETS=$(scripts/get_latest_offsets.sh \
 | `--catalog <catalog>` | `register-function.sh`, `drop-function.sh`, `drop-table.sh` | Overrides `CONFLUENT_FLINK_CATALOG` |
 
 
-
 ---
 ---
 
@@ -241,11 +240,68 @@ OFFSETS=$(scripts/get_latest_offsets.sh \
 
 Additional scripts, not directly related to the UDF workflow.
 
+### `drop-table.sh` — Drop a Flink table
+
+```shell
+drop-table.sh --table <table-name> \
+              [--environment-id <id>] [--compute-pool-id <id>] \
+              [--database <database>] [--catalog <catalog>] \
+              [--quiet]
+```
+
+Drops a Flink table by executing a `DROP TABLE IF EXISTS` statement.
+
+On success, prints `COMPLETED` (or, with `--quiet`, the table name).
+
+**Example:**
+```shell
+drop-table.sh --table extended_products --database cluster_0
+```
+
+---
+
+### `create-platform-manager-sa.sh` - Create Platform Manager Service Account + API Keys
+
+Creates the Service Account with admin permissions. Used by Terraform to manage Flink resources in the environment.
+
+> ⚠️The user who run this command must have the additional permissions of `OrganizationAdmin`, `AccountAdmin`, and `EnvironmentAdmin`.
+
+```shell
+create-platform-manager-sa.sh --name <sa-name> [--description '<description>'] \
+                               [--environment-id <id>] [--kafka-cluster-id <id>]
+```
+
+Creates a Confluent Cloud Service Account and configures it with the RBAC roles to run the statement
+- **FlinkAdmin** on the Environment
+- **ResourceOwner** on all Kafka topics (prefixed)
+
+Finally, generates a Cloud API key for the service account.
+
+| Flag | Env variable | Description |
+| --- | --- | --- |
+| `--name` | — | Service account name (required) |
+| `--description` | — | Service account description (default: "Platform Manager service account for Flink"). When specified, also used as the Cloud API key description |
+| `--environment-id` | `CONFLUENT_FLINK_ENVIRONMENT_ID` | Confluent Cloud environment ID |
+| `--kafka-cluster-id` | `CONFLUENT_KAFKA_CLUSTER_ID` | Kafka cluster ID |
+
+On success, prints the service account ID, Cloud API key, and Cloud API secret.
+
+> ⚠️ Take note of the API Key and Secret displayed by the script. It won't be possible to retrieve the secret later.
+
+**Example:**
+```shell
+create-platform-manager-sa.sh --name platform-manager \
+  --description "Platform Manager for Flink administration"
+```
+
+---
+
 ### `create-app-manager-sa.sh` - Create App Manager Service Account + API Keys
 
 Creates the Service Account with permissions to create and manage Flink statements.
-
 This Service Account is used by the Terraform module that creates the statements.
+
+> ⚠️The user who run this command must have the additional permissions of `OrganizationAdmin`, `AccountAdmin`, and `EnvironmentAdmin`.
 
 ```shell
 create-app-manager-sa.sh --name <sa-name> [--description '<description>'] \
@@ -282,60 +338,4 @@ On success, prints the service account ID, Flink API key, and Flink API secret.
 ```shell
 create-app-manager-sa.sh --name app-manager \
   --description "App Manager for Flink UDF examples"
-```
-
----
-
-### `create-platform-manager-sa.sh` - Create Platform Manager Service Account + API Keys
-
-Creates the Service Account with admin permissions to manage Flink resources in the environment.
-
-```shell
-create-platform-manager-sa.sh --name <sa-name> [--description '<description>'] \
-                               [--environment-id <id>] [--kafka-cluster-id <id>]
-```
-
-Creates a Confluent Cloud service account and configures it with the RBAC roles
-required to administer Flink:
-
-- **FlinkAdmin** on the environment
-- **ResourceOwner** on all Kafka topics (prefixed)
-
-Finally, generates a Cloud API key for the service account.
-
-| Flag | Env variable | Description |
-| --- | --- | --- |
-| `--name` | — | Service account name (required) |
-| `--description` | — | Service account description (default: "Platform Manager service account for Flink"). When specified, also used as the Cloud API key description |
-| `--environment-id` | `CONFLUENT_FLINK_ENVIRONMENT_ID` | Confluent Cloud environment ID |
-| `--kafka-cluster-id` | `CONFLUENT_KAFKA_CLUSTER_ID` | Kafka cluster ID |
-
-On success, prints the service account ID, Cloud API key, and Cloud API secret.
-
-> ⚠️ Take note of the API Key and Secret displayed by the script. It won't be possible to retrieve the secret later.
-
-**Example:**
-```shell
-create-platform-manager-sa.sh --name platform-manager \
-  --description "Platform Manager for Flink administration"
-```
-
----
-
-### `drop-table.sh` — Drop a Flink table
-
-```shell
-drop-table.sh --table <table-name> \
-              [--environment-id <id>] [--compute-pool-id <id>] \
-              [--database <database>] [--catalog <catalog>] \
-              [--quiet]
-```
-
-Drops a Flink table by executing a `DROP TABLE IF EXISTS` statement.
-
-On success, prints `COMPLETED` (or, with `--quiet`, the table name).
-
-**Example:**
-```shell
-drop-table.sh --table extended_products --database cluster_0
 ```
