@@ -126,6 +126,7 @@ The first steps are identical to Scenario 2:
 5. Stop the SQL statement - Terraform
 
 From here, things are different, because we need to create a new statement and pass the offsets:
+
 6. Fetch the latest offsets where the statement v1 was stopped - script (`get_latest_offsets.sh`)
 7. Create the new v2 statement and start it from the latest offsets of v1; v1 stays stopped - Terraform
 8. (Run tests)
