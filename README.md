@@ -28,6 +28,9 @@ Details are in the [User Defined Functions Deployment Lifecycle](./lifecycle.md)
   [ParseStructuredJson](./src/main/java/io/confluent/flink/examples/udf/table/ParseStructuredJson.java), [usage](./docs/ParseStructuredJson.md) -
   Parse a complex, structured JSON payload without a schema, execute programmatic validation, and emit a single ROW
   containing nested SQL elements such as ARRAYs and ROWs.
+* Data contract enforcer:
+  [DataContractEnforcer](./src/main/java/io/confluent/flink/examples/udf/table/DataContractEnforcer.java). [usage](./docs/DataContractEnforcer.md) -
+  Enforces rules on input. Log offending records. Either fail or skip on failed validation.
 
 ### Process Table Functions (PTF)
 
